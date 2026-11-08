@@ -57,7 +57,7 @@ class ShareNode(
     ) : NodeInputs
 
     private val inputs = inputs<Inputs>()
-    private val presenter = presenterFactory.create(inputs.shareIntentData)
+    private val presenter = presenterFactory.create(inputs.sessionId, inputs.shareIntentData)
     private val callback: ShareEntryPoint.Callback = callback()
 
     override fun resolve(navTarget: NavTarget, buildContext: BuildContext): Node {

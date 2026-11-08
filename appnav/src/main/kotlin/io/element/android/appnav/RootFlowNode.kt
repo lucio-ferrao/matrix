@@ -615,9 +615,12 @@ class RootFlowNode(
     }
 
     private suspend fun onIncomingShare(shareIntentData: ShareIntentData) {
+        // A conversation picked in the share sheet belongs to its own account, which may not be the latest one.
+        val shortcutSessionId = shareIntentData.shortcutTarget?.sessionId
+            ?.takeIf { sessionStore.getSession(it.value) != null }
         // Is there a session already?
-        val latestSessionId = sessionStore.getLatestSessionId()
-        if (latestSessionId == null) {
+        val sessionId = shortcutSessionId ?: sessionStore.getLatestSessionId()
+        if (sessionId == null) {
             // No session, open login
             switchToNotLoggedInFlow(null)
         } else {
@@ -625,8 +628,8 @@ class RootFlowNode(
             // then display the incoming share on top of it.
             // The incoming share does not belong to the current session: in case of multiple accounts, the user can switch account
             // from the room select screen, and the share is kept if the current session is signed out in the meantime.
-            attachSession(latestSessionId).waitForHome()
-            backstack.push(NavTarget.IncomingShare(latestSessionId, shareIntentData))
+            attachSession(sessionId).waitForHome()
+            backstack.push(NavTarget.IncomingShare(sessionId, shareIntentData))
         }
     }
 

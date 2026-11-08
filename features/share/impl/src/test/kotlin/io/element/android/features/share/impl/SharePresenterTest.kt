@@ -12,6 +12,7 @@ import app.cash.molecule.RecompositionMode
 import app.cash.molecule.moleculeFlow
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.element.android.features.share.api.ConversationShortcutTarget
 import io.element.android.features.share.api.ShareIntentData
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.MatrixClient
@@ -25,6 +26,7 @@ import io.element.android.libraries.matrix.test.A_SESSION_ID_2
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.FakeMatrixClientProvider
 import io.element.android.tests.testutils.WarmUpRule
+import io.element.android.tests.testutils.lambda.any
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
 import kotlinx.coroutines.CompletableDeferred
@@ -158,14 +160,63 @@ class SharePresenterTest {
             sendResult.assertions().isCalledOnce()
         }
     }
+
+    @Test
+    fun `present - a room picked in the share sheet is shared to without selecting one`() = runTest {
+        val shareIntentData = ShareIntentData.PlainText(
+            content = A_MESSAGE,
+            shortcutTarget = ConversationShortcutTarget(A_SESSION_ID_2, A_ROOM_ID),
+        )
+        val sendResult = lambdaRecorder<MatrixClient, ShareIntentData, List<RoomId>, Result<Unit>> { client, _, _ ->
+            assertThat(client.sessionId).isEqualTo(A_SESSION_ID_2)
+            Result.success(Unit)
+        }
+        val presenter = createSharePresenter(
+            sessionId = A_SESSION_ID_2,
+            shareIntentData = shareIntentData,
+            matrixClientProvider = FakeMatrixClientProvider { Result.success(FakeMatrixClient(sessionId = it)) },
+            shareDataSender = FakeShareDataSender(sendResult),
+        )
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            assertThat(awaitItem().shareAction.isUninitialized()).isTrue()
+            assertThat(awaitItem().shareAction.isLoading()).isTrue()
+            assertThat(awaitItem().shareAction).isEqualTo(AsyncAction.Success(ShareResult(A_SESSION_ID_2, listOf(A_ROOM_ID))))
+            sendResult.assertions().isCalledOnce().with(any(), value(shareIntentData), value(listOf(A_ROOM_ID)))
+        }
+    }
+
+    @Test
+    fun `present - a room picked for another session than the one handling the share is not shared to`() = runTest {
+        val sendResult = lambdaRecorder<MatrixClient, ShareIntentData, List<RoomId>, Result<Unit>> { _, _, _ -> Result.success(Unit) }
+        val presenter = createSharePresenter(
+            sessionId = A_SESSION_ID,
+            shareIntentData = ShareIntentData.PlainText(
+                content = A_MESSAGE,
+                // Picked for A_SESSION_ID_2, which is not logged in anymore, so A_SESSION_ID is handling the share.
+                shortcutTarget = ConversationShortcutTarget(A_SESSION_ID_2, A_ROOM_ID),
+            ),
+            shareDataSender = FakeShareDataSender(sendResult),
+        )
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            assertThat(awaitItem().shareAction.isUninitialized()).isTrue()
+            expectNoEvents()
+            sendResult.assertions().isNeverCalled()
+        }
+    }
 }
 
 internal fun TestScope.createSharePresenter(
+    sessionId: SessionId = A_SESSION_ID,
     shareIntentData: ShareIntentData = ShareIntentData.PlainText(A_MESSAGE),
     matrixClientProvider: FakeMatrixClientProvider = FakeMatrixClientProvider(),
     shareDataSender: ShareDataSender = FakeShareDataSender(),
 ): SharePresenter {
     return SharePresenter(
+        sessionId = sessionId,
         shareIntentData = shareIntentData,
         appCoroutineScope = this,
         matrixClientProvider = matrixClientProvider,

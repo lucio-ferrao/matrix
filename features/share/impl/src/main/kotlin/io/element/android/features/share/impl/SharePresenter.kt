@@ -9,6 +9,7 @@
 package io.element.android.features.share.impl
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import dev.zacsweers.metro.Assisted
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 
 @AssistedInject
 class SharePresenter(
+    @Assisted private val sessionId: SessionId,
     @Assisted private val shareIntentData: ShareIntentData,
     @AppCoroutineScope
     private val appCoroutineScope: CoroutineScope,
@@ -35,7 +37,7 @@ class SharePresenter(
 ) : Presenter<ShareState> {
     @AssistedFactory
     fun interface Factory {
-        fun create(shareIntentData: ShareIntentData): SharePresenter
+        fun create(sessionId: SessionId, shareIntentData: ShareIntentData): SharePresenter
     }
 
     private val shareActionState: MutableState<AsyncAction<ShareResult>> = mutableStateOf(AsyncAction.Uninitialized)
@@ -56,6 +58,15 @@ class SharePresenter(
 
     @Composable
     override fun present(): ShareState {
+        val shortcutTarget = shareIntentData.shortcutTarget?.takeIf { it.sessionId == sessionId }
+        LaunchedEffect(Unit) {
+            // Send to the room picked in the share sheet, unless a configuration change is replaying this
+            // effect over a send already in flight. Anything else falls back to room selection.
+            if (shortcutTarget != null && shareActionState.value is AsyncAction.Uninitialized) {
+                onRoomSelected(shortcutTarget.sessionId, listOf(shortcutTarget.roomId))
+            }
+        }
+
         fun handleEvent(event: ShareEvent) {
             when (event) {
                 ShareEvent.ClearError -> shareActionState.value = AsyncAction.Uninitialized

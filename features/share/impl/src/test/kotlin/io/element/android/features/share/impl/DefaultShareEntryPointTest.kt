@@ -39,7 +39,7 @@ class DefaultShareEntryPointTest {
             ShareNode(
                 buildContext = buildContext,
                 plugins = plugins,
-                presenterFactory = { createSharePresenter() },
+                presenterFactory = { _, _ -> createSharePresenter() },
                 roomSelectEntryPoint = FakeRoomSelectEntryPoint(),
             )
         }
