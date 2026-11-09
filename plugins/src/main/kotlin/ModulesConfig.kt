@@ -33,10 +33,8 @@ object ModulesConfig {
             AnalyticsConfig.Disabled
         }
     } else {
-        println("Analytics enabled with Posthog and Sentry")
-        AnalyticsConfig.Enabled(
-            withPosthog = true,
-            withSentry = true,
-        )
+        // MatriX does not share analytics nor crash reports
+        println("Analytics disabled")
+        AnalyticsConfig.Disabled
     }
 }
