@@ -235,10 +235,6 @@ fun MessagesView(
         state.reactionSummaryState.eventSink(ReactionSummaryEvent.ShowReactionSummary(event.eventId, event.reactionsState.reactions, emoji))
     }
 
-    fun onMoreReactionsClick(event: TimelineItem.Event) {
-        state.customReactionState.eventSink(CustomReactionEvent.ShowCustomReactionSheet(event))
-    }
-
     val expandableState = rememberExpandableBottomSheetLayoutState()
     ExpandableBottomSheetLayout(
         modifier = modifier
@@ -336,7 +332,6 @@ fun MessagesView(
                             },
                             onReactionClick = ::onEmojiReactionClick,
                             onReactionLongClick = ::onEmojiReactionLongClick,
-                            onMoreReactionsClick = ::onMoreReactionsClick,
                             onReadReceiptClick = { event ->
                                 state.readReceiptBottomSheetState.eventSink(ReadReceiptBottomSheetEvent.EventSelected(event))
                             },
@@ -552,7 +547,6 @@ private fun MessagesViewContent(
     onLinkClick: (Link, Boolean) -> Unit,
     onReactionClick: (key: String, TimelineItem.Event) -> Unit,
     onReactionLongClick: (key: String, TimelineItem.Event) -> Unit,
-    onMoreReactionsClick: (TimelineItem.Event) -> Unit,
     onReadReceiptClick: (TimelineItem.Event) -> Unit,
     onMessageLongClick: (TimelineItem.Event) -> Unit,
     onGalleryItemClick: ((TimelineItem.Event, Int) -> Unit),
@@ -615,7 +609,6 @@ private fun MessagesViewContent(
                 onSwipeToReply = onSwipeToReply,
                 onReactionClick = onReactionClick,
                 onReactionLongClick = onReactionLongClick,
-                onMoreReactionsClick = onMoreReactionsClick,
                 onReadReceiptClick = onReadReceiptClick,
                 onJoinCallClick = onJoinCallClick,
                 forceJumpToBottomVisibility = forceJumpToBottomVisibility,

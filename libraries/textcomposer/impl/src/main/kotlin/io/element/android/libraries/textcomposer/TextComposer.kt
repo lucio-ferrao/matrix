@@ -11,7 +11,6 @@ package io.element.android.libraries.textcomposer
 import android.content.res.Configuration
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -69,6 +67,7 @@ import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.IconButton
 import io.element.android.libraries.designsystem.theme.components.IconColorButton
 import io.element.android.libraries.designsystem.theme.components.Text
+import io.element.android.libraries.designsystem.theme.messageFromMeBackground
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
@@ -100,11 +99,11 @@ import io.element.android.libraries.textcomposer.model.showCaptionCompatibilityW
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.wysiwyg.compose.RichTextEditor
 import io.element.android.wysiwyg.display.TextDisplay
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import uniffi.wysiwyg_composer.MenuAction
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * https://www.figma.com/design/G1xy0HDZKJf5TCRFmKb5d5/Compound-Android-Components?node-id=2012-39036
@@ -502,15 +501,14 @@ private fun StandardLayout(
                         },
                     ) {
                         if (voiceMessageState is VoiceMessageState.Idle) {
+                            // MatriX: a plain icon, not a filled circle
                             Icon(
                                 modifier = Modifier
-                                    .clip(CircleShape)
                                     .size(30.dp)
-                                    .background(ElementTheme.colors.iconPrimary)
                                     .padding(3.dp),
                                 imageVector = CompoundIcons.Plus(),
                                 contentDescription = stringResource(R.string.rich_text_editor_a11y_add_attachment),
-                                tint = ElementTheme.colors.iconOnSolidPrimary
+                                tint = ElementTheme.colors.iconSecondary
                             )
                         } else {
                             when (voiceMessageState) {
@@ -647,14 +645,13 @@ private fun TextInputBox(
     modifier: Modifier = Modifier,
     textInput: @Composable () -> Unit,
 ) {
-    val bgColor = ElementTheme.colors.bgSubtleSecondary
-    val borderColor = ElementTheme.colors.borderDisabled
-    val roundedCorners = textInputRoundedCornerShape(composerMode = composerMode)
+    // MatriX: the colour and the corners of my messages, without a border
+    val bgColor = ElementTheme.colors.messageFromMeBackground
+    val roundedCorners = textInputRoundedCornerShape()
 
     Column(
         modifier = Modifier
             .clip(roundedCorners)
-            .border(0.5.dp, borderColor, roundedCorners)
             .background(color = bgColor)
             .requiredHeightIn(min = 42.dp)
             .fillMaxSize()

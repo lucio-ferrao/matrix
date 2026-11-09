@@ -8,32 +8,8 @@
 
 package io.element.android.libraries.textcomposer.components
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import io.element.android.libraries.textcomposer.model.MessageComposerMode
 
-@Composable
-internal fun textInputRoundedCornerShape(
-    composerMode: MessageComposerMode,
-): RoundedCornerShape {
-    val roundCornerSmall = 20.dp
-    val roundCornerLarge = 21.dp
-
-    val roundedCornerSize = if (composerMode is MessageComposerMode.Special) {
-        roundCornerSmall
-    } else {
-        roundCornerLarge
-    }
-
-    val roundedCornerSizeState = animateDpAsState(
-        targetValue = roundedCornerSize,
-        animationSpec = tween(
-            durationMillis = 100,
-        ),
-        label = "roundedCornerSizeAnimation"
-    )
-    return RoundedCornerShape(roundedCornerSizeState.value)
-}
+/** MatriX: the corners of my messages in the timeline. */
+internal fun textInputRoundedCornerShape(): RoundedCornerShape = RoundedCornerShape(4.dp)

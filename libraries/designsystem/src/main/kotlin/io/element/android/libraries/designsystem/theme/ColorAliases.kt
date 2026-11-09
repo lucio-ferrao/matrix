@@ -35,10 +35,9 @@ val SemanticColors.roomListRoomMessageDate
 val SemanticColors.placeholderBackground
     get() = bgSubtleSecondary
 
-// This color is not present in Semantic color, so put hard-coded value for now
-@OptIn(CoreColorToken::class)
+// MatriX: my messages on a light green tint, between the gray of the others and the green of the app
 val SemanticColors.messageFromMeBackground
-    get() = if (isLight) LightColorTokens.colorGray400 else DarkColorTokens.colorGray500
+    get() = if (isLight) Color(0xFFDDF0E3) else Color(0xFF263B2E)
 
 // This color is not present in Semantic color, so put hard-coded value for now
 @OptIn(CoreColorToken::class)

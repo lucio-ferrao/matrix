@@ -266,7 +266,6 @@ private fun PinnedMessagesListLoaded(
                 inReplyToClick = {},
                 onReactionClick = ::onReactionClick,
                 onReactionLongClick = ::onReactionLongClick,
-                onMoreReactionsClick = ::onMoreReactionsClick,
                 onReadReceiptClick = {},
                 onSwipeToReply = {},
                 onJoinCallClick = {},

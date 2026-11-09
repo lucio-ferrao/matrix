@@ -8,7 +8,6 @@
 
 package io.element.android.features.messages.impl.timeline.components
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,18 +36,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import io.element.android.compound.theme.ElementTheme
-import io.element.android.features.messages.impl.R
 import io.element.android.features.messages.impl.timeline.a11y.a11yReactionAction
 import io.element.android.features.messages.impl.timeline.a11y.a11yReactionDetails
 import io.element.android.features.messages.impl.timeline.model.AggregatedReaction
 import io.element.android.features.messages.impl.timeline.model.AggregatedReactionPreviewParam
 import io.element.android.features.messages.impl.timeline.model.aTimelineItemReactions
-import io.element.android.libraries.designsystem.icons.CompoundDrawables
 import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.text.toDp
-import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Surface
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.media.MediaSource
@@ -77,7 +72,6 @@ fun MessagesReactionButton(
     }
 
     val a11yText = when (content) {
-        is MessagesReactionsButtonContent.Icon -> stringResource(id = R.string.screen_room_timeline_add_reaction)
         is MessagesReactionsButtonContent.Text -> content.text
         is MessagesReactionsButtonContent.Reaction -> {
             a11yReactionDetails(
@@ -88,14 +82,22 @@ fun MessagesReactionButton(
         }
     }
 
+    // MatriX: the reactions are just the emoji, without a button around them
+    val isReaction = content is MessagesReactionsButtonContent.Reaction
     val innerShape = RoundedCornerShape(corner = CornerSize(12.dp))
     Surface(
         modifier = modifier
             .background(Color.Transparent)
             // Outer border, same colour as background
-            .border(
-                BorderStroke(2.dp, ElementTheme.colors.bgCanvasDefault),
-                shape = RoundedCornerShape(corner = CornerSize(14.dp))
+            .then(
+                if (isReaction) {
+                    Modifier
+                } else {
+                    Modifier.border(
+                        BorderStroke(2.dp, ElementTheme.colors.bgCanvasDefault),
+                        shape = RoundedCornerShape(corner = CornerSize(14.dp))
+                    )
+                }
             )
             .padding(vertical = 2.dp, horizontal = 2.dp)
             // Clip click indicator inside the outer border
@@ -116,16 +118,14 @@ fun MessagesReactionButton(
             )
             .onKeyboardContextMenuAction(onLongClick)
             // Inner border, to highlight when selected
-            .border(BorderStroke(1.dp, borderColor), innerShape)
-            .background(buttonColor, innerShape)
-            .padding(vertical = 4.dp, horizontal = 10.dp)
+            .then(if (isReaction) Modifier else Modifier.border(BorderStroke(1.dp, borderColor), innerShape).background(buttonColor, innerShape))
+            .padding(vertical = 4.dp, horizontal = if (isReaction) 4.dp else 10.dp)
             .clearAndSetSemantics {
                 contentDescription = a11yText
             },
-        color = buttonColor
+        color = if (isReaction) Color.Transparent else buttonColor
     ) {
         when (content) {
-            is MessagesReactionsButtonContent.Icon -> IconContent(resourceId = content.resourceId)
             is MessagesReactionsButtonContent.Text -> TextContent(text = content.text)
             is MessagesReactionsButtonContent.Reaction -> ReactionContent(reaction = content.reaction)
         }
@@ -135,7 +135,6 @@ fun MessagesReactionButton(
 @Immutable
 sealed interface MessagesReactionsButtonContent {
     data class Text(val text: String) : MessagesReactionsButtonContent
-    data class Icon(@DrawableRes val resourceId: Int) : MessagesReactionsButtonContent
 
     data class Reaction(val reaction: AggregatedReaction) : MessagesReactionsButtonContent
 
@@ -144,7 +143,6 @@ sealed interface MessagesReactionsButtonContent {
 
 internal val REACTION_EMOJI_LINE_HEIGHT = 20.sp
 internal const val REACTION_IMAGE_ASPECT_RATIO = 1.0f
-private val ADD_EMOJI_SIZE = 16.dp
 
 @Composable
 private fun TextContent(
@@ -155,17 +153,6 @@ private fun TextContent(
     text = text,
     style = ElementTheme.typography.fontBodyMdRegular,
     color = ElementTheme.colors.textPrimary
-)
-
-@Composable
-private fun IconContent(
-    @DrawableRes resourceId: Int,
-) = Icon(
-    resourceId = resourceId,
-    contentDescription = stringResource(id = R.string.screen_room_timeline_add_reaction),
-    tint = ElementTheme.colors.iconSecondary,
-    modifier = Modifier
-        .size(ADD_EMOJI_SIZE)
 )
 
 @Composable
@@ -192,12 +179,15 @@ private fun ReactionContent(
             ),
         )
     }
-    Spacer(modifier = Modifier.width(4.dp))
-    Text(
-        text = reaction.count.toString(),
-        color = if (reaction.isHighlighted) ElementTheme.colors.textPrimary else ElementTheme.colors.textSecondary,
-        style = ElementTheme.typography.fontBodyMdRegular,
-    )
+    // MatriX: the count only when there is more than one
+    if (reaction.count > 1) {
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = reaction.count.toString(),
+            color = if (reaction.isHighlighted) ElementTheme.colors.textPrimary else ElementTheme.colors.textSecondary,
+            style = ElementTheme.typography.fontBodyMdRegular,
+        )
+    }
 }
 
 @PreviewsDayNight
@@ -205,16 +195,6 @@ private fun ReactionContent(
 internal fun MessagesReactionButtonPreview(@PreviewParameter(AggregatedReactionPreviewParam::class) reaction: AggregatedReaction) = ElementPreview {
     MessagesReactionButton(
         content = MessagesReactionsButtonContent.Reaction(reaction),
-        onClick = {},
-        onLongClick = {}
-    )
-}
-
-@PreviewsDayNight
-@Composable
-internal fun MessagesReactionButtonAddPreview() = ElementPreview {
-    MessagesReactionButton(
-        content = MessagesReactionsButtonContent.Icon(CompoundDrawables.ic_compound_reaction_add),
         onClick = {},
         onLongClick = {}
     )

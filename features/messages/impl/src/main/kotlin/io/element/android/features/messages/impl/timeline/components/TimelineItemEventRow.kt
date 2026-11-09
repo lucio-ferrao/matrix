@@ -180,7 +180,6 @@ fun TimelineItemEventRow(
     inReplyToClick: (EventId) -> Unit,
     onReactionClick: (emoji: String, eventId: TimelineItem.Event) -> Unit,
     onReactionLongClick: (emoji: String, eventId: TimelineItem.Event) -> Unit,
-    onMoreReactionsClick: (eventId: TimelineItem.Event) -> Unit,
     onReadReceiptClick: (event: TimelineItem.Event) -> Unit,
     onSwipeToReply: () -> Unit,
     eventSink: (TimelineEvent.TimelineItemEvent) -> Unit,
@@ -287,7 +286,6 @@ fun TimelineItemEventRow(
                         onUserDataClick = ::onUserDataClick,
                         onReactionClick = { emoji -> onReactionClick(emoji, event) },
                         onReactionLongClick = { emoji -> onReactionLongClick(emoji, event) },
-                        onMoreReactionsClick = { onMoreReactionsClick(event) },
                         onReadReceiptClick = { onReadReceiptClick(event) },
                         modifier = Modifier
                             .absoluteOffset { IntOffset(x = state.offset.floatValue.roundToInt(), y = 0) }
@@ -325,7 +323,6 @@ fun TimelineItemEventRow(
                 onUserDataClick = ::onUserDataClick,
                 onReactionClick = { emoji -> onReactionClick(emoji, event) },
                 onReactionLongClick = { emoji -> onReactionLongClick(emoji, event) },
-                onMoreReactionsClick = { onMoreReactionsClick(event) },
                 onReadReceiptClick = { onReadReceiptClick(event) },
                 eventSink = eventSink,
                 eventContentView = eventContentView,
@@ -517,7 +514,6 @@ private fun TimelineItemEventRowContent(
     onUserDataClick: () -> Unit,
     onReactionClick: (emoji: String) -> Unit,
     onReactionLongClick: (emoji: String) -> Unit,
-    onMoreReactionsClick: (event: TimelineItem.Event) -> Unit,
     onReadReceiptClick: () -> Unit,
     eventSink: (TimelineEvent.TimelineItemEvent) -> Unit,
     modifier: Modifier = Modifier,
@@ -665,7 +661,6 @@ private fun TimelineItemEventRowContent(
                 isOutgoing = event.isMine,
                 onReactionClick = onReactionClick,
                 onReactionLongClick = onReactionLongClick,
-                onMoreReactionsClick = { onMoreReactionsClick(event) },
                 modifier = Modifier
                     .constrainAs(reactions) {
                         top.linkTo(message.bottom, margin = (-4).dp)

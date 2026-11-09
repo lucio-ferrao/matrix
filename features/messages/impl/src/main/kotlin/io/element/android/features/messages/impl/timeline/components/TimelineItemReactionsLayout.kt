@@ -19,16 +19,12 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.element.android.features.messages.impl.R
 import io.element.android.features.messages.impl.timeline.aTimelineItemReactions
-import io.element.android.libraries.designsystem.icons.CompoundDrawables
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 
 /**
  * A flow layout for reactions that will show a collapse/expand button when the layout wraps over a defined number of rows.
- * It displays an add more button when there are greater than 0 reactions and always displays the reaction and add more button
- * on the same row (moving them both to a new row if necessary).
  * @param expandButton The expand button
- * @param addMoreButton The add more button
  * @param modifier The modifier to apply to this layout
  * @param itemSpacing The horizontal spacing between items
  * @param rowSpacing The vertical spacing between rows
@@ -39,7 +35,6 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 @Composable
 fun TimelineItemReactionsLayout(
     expandButton: @Composable () -> Unit,
-    addMoreButton: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
     itemSpacing: Dp = 0.dp,
     rowSpacing: Dp = 0.dp,
@@ -75,38 +70,22 @@ fun TimelineItemReactionsLayout(
 
         // Used to render the collapsed state, this takes the rows inputted and adds the extra button to the last row,
         // removing only as many trailing reactions as needed to make space for it.
-        fun replaceTrailingItemsWithButtons(rowsIn: List<List<Placeable>>, expandButton: Placeable, addMoreButton: Placeable?): List<List<Placeable>> {
+        fun replaceTrailingItemsWithButtons(rowsIn: List<List<Placeable>>, expandButton: Placeable): List<List<Placeable>> {
             val rows = rowsIn.toMutableList()
             val lastRow = rows.last()
-            val buttonsWidth = expandButton.width + itemSpacing.toPx().toInt() + (addMoreButton?.width ?: 0)
+            val buttonsWidth = expandButton.width
             var rowX = 0
             lastRow.forEachIndexed { i, placeable ->
                 val horizontalSpacing = if (i == 0) 0 else itemSpacing.toPx().toInt()
                 rowX += placeable.width + horizontalSpacing
                 if (rowX > constraints.maxWidth - (buttonsWidth + horizontalSpacing)) {
-                    val lastRowWithButton = lastRow.take(i) + listOfNotNull(expandButton, addMoreButton)
+                    val lastRowWithButton = lastRow.take(i) + expandButton
                     rows[rows.size - 1] = lastRowWithButton
                     return rows
                 }
             }
-            val lastRowWithButton = lastRow + listOfNotNull(expandButton, addMoreButton)
+            val lastRowWithButton = lastRow + expandButton
             rows[rows.size - 1] = lastRowWithButton
-            return rows
-        }
-
-        // To prevent the add more and expand buttons from wrapping on to separate lines.
-        // If there is one item on the last line, it moves the expand button down.
-        fun ensureCollapseAndAddMoreButtonsAreOnTheSameRow(rowsIn: List<List<Placeable>>): List<List<Placeable>> {
-            val lastRow = rowsIn.last().toMutableList()
-            if (lastRow.size != 1) {
-                return rowsIn
-            }
-            val rows = rowsIn.toMutableList()
-            val secondLastRow = rows[rows.size - 2].toMutableList()
-            val expandButtonPlaceable = secondLastRow.removeAt(secondLastRow.lastIndex)
-            lastRow.add(0, expandButtonPlaceable)
-            rows[rows.size - 2] = secondLastRow
-            rows[rows.size - 1] = lastRow
             return rows
         }
 
@@ -148,26 +127,22 @@ fun TimelineItemReactionsLayout(
         val newConstrains = constraints.copy(minHeight = maxHeight)
         reactionsPlaceables = subcompose(2, reactions).map { it.measure(newConstrains) }
         expandPlaceable = subcompose(3, expandButton).first().measure(newConstrains)
-        val addMorePlaceable = addMoreButton?.let { subcompose(4, addMoreButton).first().measure(newConstrains) }
 
-        // Calculate the layout of the rows with the reactions button and add more button
-        val reactionsAndAddMore = calculateRows(reactionsPlaceables + listOfNotNull(addMorePlaceable))
+        // Calculate the layout of the rows with the reactions
+        val reactionRows = calculateRows(reactionsPlaceables)
         // If we have extended beyond the defined number of rows we are showing the expand/collapse ui
-        if (rowsBeforeCollapsible?.let { reactionsAndAddMore.size > it } == true) {
+        if (rowsBeforeCollapsible?.let { reactionRows.size > it } == true) {
             if (expanded) {
-                // Show all subviews with the add more button at the end
-                var reactionsAndButtons = calculateRows(reactionsPlaceables + listOfNotNull(expandPlaceable, addMorePlaceable))
-                reactionsAndButtons = ensureCollapseAndAddMoreButtonsAreOnTheSameRow(reactionsAndButtons)
-                layoutRows(reactionsAndButtons)
+                // Show all subviews with the collapse button at the end
+                layoutRows(calculateRows(reactionsPlaceables + expandPlaceable))
             } else {
-                // Truncate to `rowsBeforeCollapsible` number of rows and replace the reactions at the end of the last row with the buttons
-                val collapsedRows = reactionsAndAddMore.take(rowsBeforeCollapsible)
-                val collapsedRowsWithButtons = replaceTrailingItemsWithButtons(collapsedRows, expandPlaceable, addMorePlaceable)
-                layoutRows(collapsedRowsWithButtons)
+                // Truncate to `rowsBeforeCollapsible` number of rows and replace the reactions at the end of the last row with the button
+                val collapsedRows = reactionRows.take(rowsBeforeCollapsible)
+                layoutRows(replaceTrailingItemsWithButtons(collapsedRows, expandPlaceable))
             }
         } else {
             // Otherwise we are just showing all items without the expand button
-            layoutRows(reactionsAndAddMore)
+            layoutRows(reactionRows)
         }
     }
 }
@@ -182,13 +157,6 @@ internal fun TimelineItemReactionsLayoutPreview() = ElementPreview {
                 content = MessagesReactionsButtonContent.Text(
                     text = stringResource(id = R.string.screen_room_timeline_less_reactions)
                 ),
-                onClick = {},
-                onLongClick = {}
-            )
-        },
-        addMoreButton = {
-            MessagesReactionButton(
-                content = MessagesReactionsButtonContent.Icon(CompoundDrawables.ic_compound_reaction_add),
                 onClick = {},
                 onLongClick = {}
             )
