@@ -117,6 +117,7 @@ internal fun MessageComposerView(
         onError = ::onError,
         onTyping = ::onTyping,
         onSelectRichContent = ::sendUri,
+        roomId = state.roomId,
     )
 
     AsyncActionView(

@@ -55,6 +55,7 @@ fun MarkdownTextInput(
     onReceiveSuggestion: (Suggestion?) -> Unit,
     richTextEditorStyle: RichTextEditorStyle,
     onSelectRichContent: ((Uri) -> Unit)?,
+    roomId: String? = null,
 ) {
     // Copied from io.element.android.wysiwyg.internal.utils.UriContentListener
     class ReceiveUriContentListener(
@@ -94,6 +95,12 @@ fun MarkdownTextInput(
                 setText(text)
                 setHint(placeholder)
                 setHintTextColor(ColorStateList.valueOf(placeholderColor.toArgb()))
+                // the room, for the keyboard (Keyarchy): it puts the person of this chat aside while it is open
+                roomId?.let { id ->
+                    val room = "org.ferrao.homekey.room=$id"
+                    privateImeOptions = listOfNotNull(privateImeOptions?.takeIf { it.isNotEmpty() }, room)
+                        .joinToString(",")
+                }
                 contentDescription = placeholder
                 inputType = InputType.TYPE_CLASS_TEXT or
                     InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or

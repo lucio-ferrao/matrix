@@ -30,4 +30,6 @@ data class MessageComposerState(
     val resolveAtRoomMentionDisplay: () -> TextDisplay,
     val slashCommandAction: AsyncAction<Unit>,
     val eventSink: (MessageComposerEvent) -> Unit,
+    /** The room of the composer, told to the keyboard (Keyarchy) so it knows which chat is open. */
+    val roomId: String? = null,
 )

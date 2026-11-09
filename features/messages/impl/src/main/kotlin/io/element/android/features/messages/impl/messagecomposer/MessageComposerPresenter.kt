@@ -435,6 +435,7 @@ class MessageComposerPresenter(
             resolveAtRoomMentionDisplay = resolveAtRoomMentionDisplay,
             slashCommandAction = slashCommandAction.value,
             eventSink = ::handleEvent,
+            roomId = room.roomId.value,
         )
     }
 

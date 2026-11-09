@@ -26,6 +26,7 @@ import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.IconButton
+import io.element.android.libraries.designsystem.theme.messageFromMeBackground
 
 /**
  * Send button for the message composer.
@@ -45,8 +46,9 @@ internal fun SendButtonIcon(
         isEditing -> 0.dp
         else -> 2.dp
     }
+    // MatriX: the colour of my messages, the icon in the colour of the text on it
     val backgroundColor = if (canSendMessage) {
-        ElementTheme.colors.bgAccentRest
+        ElementTheme.colors.messageFromMeBackground
     } else {
         Color.Transparent
     }
@@ -64,7 +66,7 @@ internal fun SendButtonIcon(
             // Note: accessibility is managed in TextComposer.
             contentDescription = null,
             tint = if (canSendMessage) {
-                ElementTheme.colors.iconOnSolidPrimary
+                ElementTheme.colors.iconPrimary
             } else {
                 ElementTheme.colors.iconQuaternary
             }

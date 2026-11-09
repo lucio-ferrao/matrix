@@ -67,7 +67,7 @@ import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.IconButton
 import io.element.android.libraries.designsystem.theme.components.IconColorButton
 import io.element.android.libraries.designsystem.theme.components.Text
-import io.element.android.libraries.designsystem.theme.messageFromMeBackground
+import io.element.android.libraries.designsystem.theme.messageFromOtherBackground
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
@@ -131,6 +131,7 @@ fun TextComposer(
     modifier: Modifier = Modifier,
     showTextFormatting: Boolean = false,
     isInThreadTimeline: Boolean = false,
+    roomId: String? = null,
 ) {
     val markdown = when (state) {
         is TextEditorState.Markdown -> state.state.text.value()
@@ -213,6 +214,7 @@ fun TextComposer(
                     isTextEmpty = state.state.text.value().isEmpty(),
                 ) {
                     MarkdownTextInput(
+                        roomId = roomId,
                         state = state.state,
                         placeholder = placeholder,
                         placeholderColor = ElementTheme.colors.textSecondary,
@@ -480,11 +482,12 @@ private fun StandardLayout(
                     Spacer(modifier = Modifier.width(19.dp))
                 }
                 else -> {
-                    val endPadding = if (voiceMessageState is VoiceMessageState.Idle) 0.dp else 3.dp
                     // To avoid loosing keyboard focus, the IconButton has to be defined here and has to be always enabled.
+                    // MatriX: the same room as the send button on the right (6 dp each side of a 48 dp button), so the text
+                    // box is in the middle of the screen
                     IconButton(
                         modifier = Modifier
-                            .padding(top = 5.dp, bottom = 5.dp, start = 3.dp, end = endPadding)
+                            .padding(top = 5.dp, bottom = 5.dp, start = 6.dp, end = 6.dp)
                             .size(48.dp),
                         onClick = {
                             if (voiceMessageState is VoiceMessageState.Idle) {
@@ -501,12 +504,12 @@ private fun StandardLayout(
                         },
                     ) {
                         if (voiceMessageState is VoiceMessageState.Idle) {
-                            // MatriX: a plain icon, not a filled circle
+                            // MatriX: a paperclip, as in WhatsApp, not a filled circle
                             Icon(
                                 modifier = Modifier
                                     .size(30.dp)
                                     .padding(3.dp),
-                                imageVector = CompoundIcons.Plus(),
+                                imageVector = CompoundIcons.Attachment(),
                                 contentDescription = stringResource(R.string.rich_text_editor_a11y_add_attachment),
                                 tint = ElementTheme.colors.iconSecondary
                             )
@@ -645,8 +648,8 @@ private fun TextInputBox(
     modifier: Modifier = Modifier,
     textInput: @Composable () -> Unit,
 ) {
-    // MatriX: the colour and the corners of my messages, without a border
-    val bgColor = ElementTheme.colors.messageFromMeBackground
+    // MatriX: the colour of the messages of the other person and the corners of the messages, without a border
+    val bgColor = ElementTheme.colors.messageFromOtherBackground
     val roundedCorners = textInputRoundedCornerShape()
 
     Column(
