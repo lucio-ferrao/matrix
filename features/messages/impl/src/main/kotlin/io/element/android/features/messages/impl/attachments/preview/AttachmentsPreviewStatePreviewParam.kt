@@ -73,6 +73,7 @@ fun anAttachmentsPreviewState(
     mediaOptimizationSelectorState: MediaOptimizationSelectorState = aMediaOptimisationSelectorState(),
     displayFileTooLargeError: Boolean = false,
     currentIndex: Int = 0,
+    roomName: String? = "Silvia",
 ) = AttachmentsPreviewState(
     attachments = persistentListOf(
         Attachment.Media(
@@ -88,6 +89,7 @@ fun anAttachmentsPreviewState(
     mediaOptimizationSelectorState = mediaOptimizationSelectorState,
     displayFileTooLargeError = displayFileTooLargeError,
     currentIndex = currentIndex,
+    roomName = roomName,
     eventSink = {}
 )
 
@@ -97,6 +99,7 @@ fun anAttachmentsPreviewGalleryState(
     sendActionState: SendActionState = SendActionState.Idle,
     mediaOptimizationSelectorState: MediaOptimizationSelectorState = aMediaOptimisationSelectorState(),
     currentIndex: Int = 0,
+    roomName: String? = "Silvia",
 ) = AttachmentsPreviewState(
     attachments = persistentListOf(
         Attachment.Media(
@@ -118,6 +121,7 @@ fun anAttachmentsPreviewGalleryState(
     mediaOptimizationSelectorState = mediaOptimizationSelectorState,
     displayFileTooLargeError = false,
     currentIndex = currentIndex,
+    roomName = roomName,
     eventSink = {}
 )
 

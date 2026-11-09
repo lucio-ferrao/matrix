@@ -41,6 +41,14 @@ interface ShareEntryPoint : FeatureEntryPoint {
         fun onDone(sessionId: SessionId, roomIds: List<RoomId>)
 
         /**
+         * MatriX: called when media shared to a single room have to be previewed in that room before sending them.
+         * @param sessionId the session of the room. It can be different from the current session.
+         * @param roomId the room to open.
+         * @param media the media to preview.
+         */
+        fun onPreview(sessionId: SessionId, roomId: RoomId, media: List<UriToShare>)
+
+        /**
          * Called when the user cancels the share.
          */
         fun onCancel()

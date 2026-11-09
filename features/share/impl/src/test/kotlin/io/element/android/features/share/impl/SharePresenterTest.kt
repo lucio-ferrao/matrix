@@ -8,13 +8,16 @@
 
 package io.element.android.features.share.impl
 
+import android.net.Uri
 import app.cash.molecule.RecompositionMode
 import app.cash.molecule.moleculeFlow
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.features.share.api.ConversationShortcutTarget
 import io.element.android.features.share.api.ShareIntentData
+import io.element.android.features.share.api.UriToShare
 import io.element.android.libraries.architecture.AsyncAction
+import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
@@ -29,6 +32,7 @@ import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.lambda.any
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -89,6 +93,25 @@ class SharePresenterTest {
             val success = awaitItem()
             assertThat(success.shareAction).isEqualTo(AsyncAction.Success(ShareResult(A_SESSION_ID, listOf(A_ROOM_ID))))
             sendResult.assertions().isCalledOnce().with(value(client), value(shareIntentData), value(listOf(A_ROOM_ID)))
+        }
+    }
+
+    @Test
+    fun `present - media shared to a single room are previewed there, not sent`() = runTest {
+        val uri: Uri = mockk("sharedUri")
+        val media = listOf(UriToShare(uri, MimeTypes.Jpeg))
+        val sendResult = lambdaRecorder<MatrixClient, ShareIntentData, List<RoomId>, Result<Unit>> { _, _, _ -> Result.success(Unit) }
+        val presenter = createSharePresenter(
+            shareIntentData = ShareIntentData.Uris(text = null, uris = media),
+            shareDataSender = FakeShareDataSender(sendResult),
+        )
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            skipItems(1)
+            presenter.onRoomSelected(A_SESSION_ID, listOf(A_ROOM_ID))
+            assertThat(awaitItem().shareAction).isEqualTo(AsyncAction.Success(ShareResult(A_SESSION_ID, listOf(A_ROOM_ID), mediaToPreview = media)))
+            sendResult.assertions().isNeverCalled()
         }
     }
 

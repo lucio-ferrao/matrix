@@ -14,6 +14,7 @@ import com.bumble.appyx.testing.junit4.util.MainDispatcherRule
 import com.google.common.truth.Truth.assertThat
 import io.element.android.features.share.api.ShareEntryPoint
 import io.element.android.features.share.api.ShareIntentData
+import io.element.android.features.share.api.UriToShare
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.test.A_MESSAGE
@@ -45,6 +46,7 @@ class DefaultShareEntryPointTest {
         }
         val callback = object : ShareEntryPoint.Callback {
             override fun onDone(sessionId: SessionId, roomIds: List<RoomId>) = lambdaError()
+            override fun onPreview(sessionId: SessionId, roomId: RoomId, media: List<UriToShare>) = lambdaError()
             override fun onCancel() = lambdaError()
             override fun onSessionVerificationRequired(sessionId: SessionId) = lambdaError()
         }

@@ -8,6 +8,7 @@
 
 package io.element.android.appnav.room
 
+import android.net.Uri
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -23,6 +24,7 @@ import com.bumble.appyx.navmodel.backstack.active
 import com.bumble.appyx.navmodel.backstack.operation.newRoot
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedInject
+import im.vector.app.features.analytics.plan.JoinedRoom as JoinedRoomAnalyticsEvent
 import io.element.android.annotations.ContributesNode
 import io.element.android.appnav.room.joined.JoinedRoomFlowNode
 import io.element.android.appnav.room.joined.JoinedRoomLoadedFlowNode
@@ -45,6 +47,7 @@ import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.RoomIdOrAlias
 import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.room.CurrentUserMembership
+import io.element.android.libraries.matrix.api.room.JoinedRoom as JoinedRoomInstance
 import io.element.android.libraries.matrix.api.room.RoomMembershipObserver
 import io.element.android.libraries.matrix.api.room.alias.ResolvedRoomAlias
 import io.element.android.libraries.matrix.ui.room.LoadingRoomState
@@ -52,6 +55,8 @@ import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction
 import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.NotificationToMessage
 import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.OpenRoom
 import io.element.android.services.analytics.api.AnalyticsService
+import java.util.Optional
+import kotlin.jvm.optionals.getOrNull
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -63,10 +68,6 @@ import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
-import java.util.Optional
-import kotlin.jvm.optionals.getOrNull
-import im.vector.app.features.analytics.plan.JoinedRoom as JoinedRoomAnalyticsEvent
-import io.element.android.libraries.matrix.api.room.JoinedRoom as JoinedRoomInstance
 
 @ContributesNode(SessionScope::class)
 @AssistedInject
@@ -245,6 +246,11 @@ class RoomFlowNode(
     suspend fun attachThread(threadId: ThreadId, focusedEventId: EventId?) {
         waitForChildAttached<JoinedRoomFlowNode>()
             .attachThread(threadId, focusedEventId)
+    }
+
+    suspend fun attachMediaPreview(media: List<Pair<Uri, String>>) {
+        waitForChildAttached<JoinedRoomFlowNode>()
+            .attachMediaPreview(media)
     }
 
     private fun loadingNode(buildContext: BuildContext) = node(buildContext) { modifier ->

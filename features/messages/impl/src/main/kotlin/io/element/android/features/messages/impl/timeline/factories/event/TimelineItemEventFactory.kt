@@ -12,6 +12,7 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
 import io.element.android.features.messages.impl.timeline.factories.TimelineItemsFactoryConfig
+import io.element.android.features.messages.impl.timeline.factories.isKeyVerificationRequest
 import io.element.android.features.messages.impl.timeline.groups.canBeDisplayedInBubbleBlock
 import io.element.android.features.messages.impl.timeline.model.AggregatedReaction
 import io.element.android.features.messages.impl.timeline.model.AggregatedReactionSender
@@ -33,6 +34,7 @@ import io.element.android.libraries.matrix.api.timeline.MatrixTimelineItem
 import io.element.android.libraries.matrix.api.timeline.item.EventThreadInfo
 import io.element.android.libraries.matrix.api.timeline.item.event.getAvatarUrl
 import io.element.android.libraries.matrix.api.timeline.item.event.getDisambiguatedDisplayName
+import io.element.android.libraries.matrix.api.timeline.item.virtual.VirtualTimelineItem
 import io.element.android.libraries.matrix.ui.messages.reply.map
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -195,9 +197,9 @@ class TimelineItemEventFactory(
         index: Int
     ): TimelineItemGroupPosition {
         val prevTimelineItem =
-            timelineItems.getOrNull(index - 1) as? MatrixTimelineItem.Event
+            timelineItems.shownNeighbour(index, step = -1) as? MatrixTimelineItem.Event
         val nextTimelineItem =
-            timelineItems.getOrNull(index + 1) as? MatrixTimelineItem.Event
+            timelineItems.shownNeighbour(index, step = 1) as? MatrixTimelineItem.Event
         val currentSender = currentTimelineItem.event.sender
         val previousSender = prevTimelineItem?.event?.sender
         val nextSender = nextTimelineItem?.event?.sender
@@ -245,4 +247,21 @@ class TimelineItemEventFactory(
             else -> TimelineItemGroupPosition.None
         }
     }
+}
+
+/**
+ * MatriX: the nearest item before ([step] -1) or after ([step] 1) the one at [index] that is shown, so that the items
+ * which are not shown (unsupported items, key verification requests, the read marker) do not split a group of messages.
+ */
+private fun List<MatrixTimelineItem>.shownNeighbour(index: Int, step: Int): MatrixTimelineItem? {
+    var i = index + step
+    while (i in indices) {
+        val item = this[i]
+        val isShown = item !is MatrixTimelineItem.Other &&
+            !(item is MatrixTimelineItem.Event && item.event.isKeyVerificationRequest()) &&
+            !(item is MatrixTimelineItem.Virtual && item.virtual is VirtualTimelineItem.ReadMarker)
+        if (isShown) return item
+        i += step
+    }
+    return null
 }

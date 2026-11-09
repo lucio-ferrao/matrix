@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.TimelineRoomInfo
 import io.element.android.features.messages.impl.timeline.components.virtual.TimelineItemDaySeparatorView
-import io.element.android.features.messages.impl.timeline.components.virtual.TimelineItemReadMarkerView
 import io.element.android.features.messages.impl.timeline.components.virtual.TimelineItemRoomBeginningView
 import io.element.android.features.messages.impl.timeline.components.virtual.TimelineLoadingMoreIndicator
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
@@ -41,7 +40,8 @@ fun TimelineItemVirtualRow(
     Box(modifier = modifier) {
         when (virtual.model) {
             is TimelineItemDaySeparatorModel -> TimelineItemDaySeparatorView(virtual.model)
-            TimelineItemReadMarkerModel -> TimelineItemReadMarkerView()
+            // MatriX: no space for the read marker; the first unread message draws a thin line above it
+            TimelineItemReadMarkerModel -> Unit
             TimelineItemRoomBeginningModel -> {
                 TimelineItemRoomBeginningView(
                     predecessorRoom = timelineRoomInfo.predecessorRoom,

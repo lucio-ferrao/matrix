@@ -32,3 +32,13 @@ internal fun String.containsOnlyEmojis(): Boolean {
 
     return contiguous and (m?.end() == length)
 }
+
+/**
+ * MatriX: true if the string is one emoji (one grapheme of [containsOnlyEmojis]), ignoring spaces.
+ */
+internal fun String.isSingleEmoji(): Boolean {
+    val text = replace(" ", "")
+    if (!text.containsOnlyEmojis()) return false
+    val matcher = GraphemeMatcher(text)
+    return matcher.find() && !matcher.find()
+}

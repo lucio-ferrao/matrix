@@ -44,7 +44,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -96,6 +98,7 @@ import io.element.android.features.messages.impl.timeline.model.event.aTimelineI
 import io.element.android.features.messages.impl.timeline.model.event.ensureActiveLiveLocation
 import io.element.android.features.messages.impl.timeline.protection.TimelineProtectionState
 import io.element.android.features.messages.impl.timeline.protection.mustBeProtected
+import io.element.android.features.messages.impl.utils.isSingleEmoji
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.colors.AvatarColorsProvider
 import io.element.android.libraries.designsystem.components.EqualWidthColumn
@@ -147,10 +150,10 @@ import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.libraries.ui.utils.a11y.isTalkbackActive
 import io.element.android.libraries.ui.utils.text.detect
 import io.element.android.wysiwyg.link.Link
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.launch
 
 // The bubble has a negative margin to be placed a bit upper regarding the sender
 // information and overlap the avatar.
@@ -255,10 +258,12 @@ fun TimelineItemEventRow(
             .fillMaxWidth()
             .semantics { customActions = accessibilityActions }
     ) {
+        // MatriX: the read marker is a thin line in the middle of the space above the first unread message
+        val spacerModifier = if (event.isFirstUnread) Modifier.fillMaxWidth().drawUnreadLine() else Modifier
         if (event.groupPosition.isNew()) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = spacerModifier.height(16.dp))
         } else {
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = spacerModifier.height(2.dp))
         }
         if (canReply) {
             val state: SwipeableActionsState = rememberSwipeableActionsState()
@@ -352,6 +357,16 @@ fun TimelineItemEventRow(
             )
         }
 
+    }
+}
+
+@Composable
+private fun Modifier.drawUnreadLine(): Modifier {
+    val color = ElementTheme.colors.textActionAccent
+    return drawBehind {
+        val y = size.height / 2
+        val margin = 16.dp.toPx()
+        drawLine(color, start = Offset(margin, y), end = Offset(size.width - margin, y), strokeWidth = 1.dp.toPx())
     }
 }
 
@@ -596,6 +611,11 @@ private fun TimelineItemEventRowContent(
             isMine = event.isMine,
             timelineRoomInfo = timelineRoomInfo,
         )
+        // MatriX: a message that is a single emoji has no bubble behind it (unless it quotes another message)
+        val isSingleEmoji = remember(event.content, event.inReplyTo) {
+            event.inReplyTo == null &&
+                (event.content as? TimelineItemTextContent)?.let { it.formattedBody.toString() == it.body && it.body.isSingleEmoji() } == true
+        }
         MessageEventBubble(
             modifier = Modifier
                 .constrainAs(message) {
@@ -616,7 +636,7 @@ private fun TimelineItemEventRowContent(
             interactionSource = interactionSource,
             onClick = onContentClick,
             onLongClick = onLongClick,
-            customBackgroundColor = dangerousContentBubbleColor,
+            customBackgroundColor = dangerousContentBubbleColor ?: Color.Transparent.takeIf { isSingleEmoji },
             borderColor = borderColor,
         ) {
             MessageEventBubbleContent(
@@ -795,10 +815,12 @@ private fun MessageEventBubbleContent(
                         showReadMark = showReadMark,
                         onReadMarkClick = onReadMarkClick,
                         eventSink = eventSink,
+                        isOverImage = true,
                         modifier = Modifier
                             // Outer padding
                             .padding(horizontal = 4.dp, vertical = 4.dp)
-                            .background(ElementTheme.colors.bgSubtleSecondary, RoundedCornerShape(10.0.dp))
+                            // MatriX: half transparent, to hide less of the image
+                            .background(ElementTheme.colors.bgSubtleSecondary.copy(alpha = 0.5f), RoundedCornerShape(10.0.dp))
                             .align(Alignment.BottomEnd)
                             // Inner padding, wider at the end for the read mark drawn after the time
                             .padding(start = 4.dp, end = 8.dp, top = 2.dp, bottom = 2.dp)

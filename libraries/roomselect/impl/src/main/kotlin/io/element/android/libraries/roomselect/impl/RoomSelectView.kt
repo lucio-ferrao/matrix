@@ -98,6 +98,10 @@ fun RoomSelectView(
     onSubmit: (List<RoomId>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // MatriX: a share goes to one room, picked with a single tap
+    val pickOne = state.mode == RoomSelectMode.Share
+    val onPick: ((SelectRoomInfo) -> Unit)? = if (pickOne) { roomInfo -> onSubmit(listOf(roomInfo.roomId)) } else null
+
     fun onRoomRemoved(roomInfo: SelectRoomInfo) {
         state.eventSink(RoomSelectEvent.ToggleSelectedRoom(roomInfo))
     }
@@ -182,11 +186,13 @@ fun RoomSelectView(
                     )
                 },
                 actions = {
-                    TextButton(
-                        text = stringResource(CommonStrings.action_send),
-                        enabled = state.selectedRooms.isNotEmpty(),
-                        onClick = { onSubmit(state.selectedRooms.map { it.roomId }) }
-                    )
+                    if (!pickOne) {
+                        TextButton(
+                            text = stringResource(CommonStrings.action_send),
+                            enabled = state.selectedRooms.isNotEmpty(),
+                            onClick = { onSubmit(state.selectedRooms.map { it.roomId }) }
+                        )
+                    }
                 }
             )
         },
@@ -265,7 +271,7 @@ fun RoomSelectView(
                                     hasDivider = false,
                                 )
                             }
-                            roomSummaryItems(state = state, rooms = state.suggestions, keyPrefix = "suggestion_")
+                            roomSummaryItems(state = state, rooms = state.suggestions, onPick = onPick, keyPrefix = "suggestion_")
                         }
                         if (rooms.isNotEmpty()) {
                             item {
@@ -279,7 +285,7 @@ fun RoomSelectView(
                                     hasDivider = false,
                                 )
                             }
-                            roomSummaryItems(state = state, rooms = rooms)
+                            roomSummaryItems(state = state, rooms = rooms, onPick = onPick)
                         }
                     }
                 }
@@ -291,14 +297,17 @@ fun RoomSelectView(
 private fun LazyListScope.roomSummaryItems(
     state: RoomSelectState,
     rooms: ImmutableList<SelectRoomInfo>,
+    // MatriX: when set, a tap picks the room at once instead of toggling its checkbox
+    onPick: ((SelectRoomInfo) -> Unit)?,
     keyPrefix: String = "",
 ) {
     items(rooms, key = { "$keyPrefix${it.roomId.value}" }) { roomSummary ->
         RoomSummaryView(
             roomInfo = roomSummary,
             isSelected = state.selectedRooms.any { it.roomId == roomSummary.roomId },
-            onSelection = { state.eventSink(RoomSelectEvent.ToggleSelectedRoom(it)) },
+            onSelection = { onPick?.invoke(it) ?: state.eventSink(RoomSelectEvent.ToggleSelectedRoom(it)) },
             canBeSelected = state.canSelectMoreRooms,
+            showCheckbox = onPick == null,
         )
     }
 }
@@ -371,6 +380,7 @@ private fun RoomSummaryView(
     isSelected: Boolean,
     canBeSelected: Boolean,
     onSelection: (SelectRoomInfo) -> Unit,
+    showCheckbox: Boolean,
 ) {
     ListItem(
         onClick = { onSelection(roomInfo) },
@@ -385,10 +395,14 @@ private fun RoomSummaryView(
                 ),
             )
         },
-        trailingContent = ListItemContent.Checkbox(
-            checked = isSelected,
-            enabled = isSelected || canBeSelected,
-        ),
+        trailingContent = if (showCheckbox) {
+            ListItemContent.Checkbox(
+                checked = isSelected,
+                enabled = isSelected || canBeSelected,
+            )
+        } else {
+            null
+        },
     ) {
         Column {
             // Name

@@ -47,6 +47,11 @@ class SharePresenter(
      */
     fun onRoomSelected(sessionId: SessionId, roomIds: List<RoomId>) {
         if (shareActionState.value.isLoading()) return
+        // MatriX: media shared to a single room are previewed there before being sent
+        if (shareIntentData is ShareIntentData.Uris && roomIds.size == 1) {
+            shareActionState.value = AsyncAction.Success(ShareResult(sessionId, roomIds, mediaToPreview = shareIntentData.uris))
+            return
+        }
         appCoroutineScope.launch {
             suspend {
                 val client = matrixClientProvider.getOrRestore(sessionId).getOrThrow()

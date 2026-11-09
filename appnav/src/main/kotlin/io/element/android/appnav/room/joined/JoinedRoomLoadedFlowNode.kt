@@ -9,6 +9,7 @@
 package io.element.android.appnav.room.joined
 
 import android.app.Activity
+import android.net.Uri
 import android.os.Parcelable
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
@@ -306,6 +307,13 @@ class JoinedRoomLoadedFlowNode(
             navTarget is NavTarget.Messages
         }
         (messageNode as? MessagesEntryPoint.NodeProxy)?.attachThread(threadId, focusedEventId)
+    }
+
+    suspend fun attachMediaPreview(media: List<Pair<Uri, String>>) {
+        val messageNode = waitForChildAttached<Node, NavTarget> { navTarget ->
+            navTarget is NavTarget.Messages
+        }
+        (messageNode as? MessagesEntryPoint.NodeProxy)?.attachMediaPreview(media)
     }
 
     @Composable

@@ -98,7 +98,13 @@ class ShareNode(
             val state = presenter.present()
             ShareView(
                 state = state,
-                onShareSuccess = { result -> callback.onDone(result.sessionId, result.roomIds) },
+                onShareSuccess = { result ->
+                    if (result.mediaToPreview.isEmpty()) {
+                        callback.onDone(result.sessionId, result.roomIds)
+                    } else {
+                        callback.onPreview(result.sessionId, result.roomIds.single(), result.mediaToPreview)
+                    }
+                },
             )
         }
     }

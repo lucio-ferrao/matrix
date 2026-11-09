@@ -169,7 +169,8 @@ fun AttachmentsPreviewView(
                             modifier = Modifier.semantics {
                                 heading()
                             },
-                            text = stringResource(R.string.screen_media_upload_preview_title),
+                            // MatriX: the room the media are sent to
+                            text = state.roomName ?: stringResource(R.string.screen_media_upload_preview_title),
                         )
                     },
                     actions = {

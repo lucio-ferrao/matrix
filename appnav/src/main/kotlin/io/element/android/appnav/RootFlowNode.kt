@@ -51,6 +51,7 @@ import io.element.android.features.login.api.accesscontrol.AccountProviderAccess
 import io.element.android.features.rageshake.api.bugreport.BugReportEntryPoint
 import io.element.android.features.share.api.ShareEntryPoint
 import io.element.android.features.share.api.ShareIntentData
+import io.element.android.features.share.api.UriToShare
 import io.element.android.features.signedout.api.SignedOutEntryPoint
 import io.element.android.libraries.accountselect.api.AccountSelectEntryPoint
 import io.element.android.libraries.architecture.BackstackView
@@ -81,6 +82,7 @@ import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction
 import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analytics.api.watchers.AnalyticsColdStartWatcher
 import io.element.android.services.appnavstate.api.ROOM_OPENED_FROM_NOTIFICATION
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -93,7 +95,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
-import kotlin.time.Duration.Companion.seconds
 
 @ContributesNode(AppScope::class)
 @AssistedInject
@@ -503,6 +504,16 @@ class RootFlowNode(
                             roomIds.singleOrNull()?.let { roomId ->
                                 loggedInFlowNode.attachRoom(roomId.toRoomIdOrAlias(), clearBackstack = false)
                             }
+                        }
+                    }
+
+                    override fun onPreview(sessionId: SessionId, roomId: RoomId, media: List<UriToShare>) {
+                        // Remove the incoming share screen, and preview the media in the room before sending them
+                        backstack.pop()
+                        lifecycleScope.launch {
+                            attachSession(sessionId)
+                                .attachRoom(roomId.toRoomIdOrAlias(), clearBackstack = false)
+                                .attachMediaPreview(media.map { it.uri to it.mimeType })
                         }
                     }
 

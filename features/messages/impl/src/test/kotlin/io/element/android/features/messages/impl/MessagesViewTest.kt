@@ -268,7 +268,7 @@ class MessagesViewTest : RobolectricTest() {
         val state = aMessagesState(
             timelineState = aTimelineState(
                 timelineItems = persistentListOf(
-                    // the read mark is next to the time of my messages
+                    // the read mark is next to the time of my latest message the others have read
                     aTimelineItemEvent(
                         isMine = true,
                         readReceiptState = aTimelineItemReadReceipts(
@@ -276,7 +276,7 @@ class MessagesViewTest : RobolectricTest() {
                                 aReadReceiptData(0),
                             ),
                         ),
-                    ),
+                    ).copy(isReadMark = true),
                 ),
             ),
             readReceiptBottomSheetState = aReadReceiptBottomSheetState(

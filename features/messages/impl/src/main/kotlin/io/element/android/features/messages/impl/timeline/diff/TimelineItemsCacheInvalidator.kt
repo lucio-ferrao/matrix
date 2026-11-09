@@ -9,6 +9,7 @@
 package io.element.android.features.messages.impl.timeline.diff
 
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
+import io.element.android.features.messages.impl.timeline.model.virtual.TimelineItemReadMarkerModel
 import io.element.android.libraries.androidutils.diff.DefaultDiffCacheInvalidator
 import io.element.android.libraries.androidutils.diff.DiffCacheInvalidator
 import io.element.android.libraries.androidutils.diff.MutableDiffCache
@@ -44,11 +45,17 @@ internal class TimelineItemsCacheInvalidator : DiffCacheInvalidator<TimelineItem
  * Invalidate the cache around the given position.
  * It invalidates the previous and next items.
  */
-private fun MutableDiffCache<*>.invalidateAround(position: Int) {
-    if (position > 0) {
-        set(position - 1, null)
+private fun MutableDiffCache<TimelineItem>.invalidateAround(position: Int) {
+    // MatriX: past the items that are not shown (never cached) and the read marker, as they do not split a group of messages
+    fun isSkipped(index: Int) = get(index).let { it == null || it is TimelineItem.Virtual && it.model == TimelineItemReadMarkerModel }
+    var before = position - 1
+    while (before >= 0 && isSkipped(before)) before--
+    if (before >= 0) {
+        set(before, null)
     }
-    if (position < indices().last) {
-        set(position + 1, null)
+    var after = position + 1
+    while (after <= indices().last && isSkipped(after)) after++
+    if (after <= indices().last) {
+        set(after, null)
     }
 }

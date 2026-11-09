@@ -15,10 +15,14 @@ import io.element.android.features.messages.impl.timeline.diff.TimelineItemsCach
 import io.element.android.features.messages.impl.timeline.factories.event.TimelineItemEventFactory
 import io.element.android.features.messages.impl.timeline.factories.virtual.TimelineItemVirtualFactory
 import io.element.android.features.messages.impl.timeline.groups.TimelineItemGrouper
+import io.element.android.features.messages.impl.timeline.model.ReadReceiptData
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
+import io.element.android.features.messages.impl.timeline.model.TimelineItemReadReceipts
+import io.element.android.features.messages.impl.timeline.model.virtual.TimelineItemReadMarkerModel
 import io.element.android.libraries.androidutils.diff.DiffCacheUpdater
 import io.element.android.libraries.androidutils.diff.MutableListDiffCache
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
+import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.timeline.MatrixTimelineItem
 import io.element.android.libraries.matrix.api.timeline.item.event.EventTimelineItem
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageContent
@@ -82,7 +86,7 @@ class TimelineItemsFactory(
                 newTimelineItemStates.add(cacheItem)
             }
         }
-        val result = timelineItemGrouper.group(newTimelineItemStates).toImmutableList()
+        val result = timelineItemGrouper.group(newTimelineItemStates).withReadMark().withFirstUnread().toImmutableList()
         this._timelineItems.emit(result)
     }
 
@@ -105,7 +109,43 @@ class TimelineItemsFactory(
     }
 }
 
-private fun EventTimelineItem.isKeyVerificationRequest(): Boolean {
+/**
+ * MatriX: puts the read mark on my latest message the others have read, that is the latest one at or before their read
+ * receipts, which are often on their own later messages. It gets everyone who has read up to it or further.
+ * The items are the newest first.
+ */
+private fun List<TimelineItem>.withReadMark(): List<TimelineItem> {
+    val receipts = LinkedHashMap<UserId, ReadReceiptData>()
+    forEachIndexed { index, item ->
+        val events = when (item) {
+            is TimelineItem.Event -> listOf(item)
+            is TimelineItem.GroupedEvents -> item.events
+            is TimelineItem.Virtual -> emptyList()
+        }
+        events.forEach { event -> event.readReceiptState.receipts.forEach { receipts.putIfAbsent(it.userId, it) } }
+        if (item is TimelineItem.Event && item.isMine) {
+            val others = receipts.values.filter { it.userId != item.senderId }
+            if (others.isNotEmpty()) {
+                return toMutableList().apply {
+                    set(index, item.copy(isReadMark = true, readReceiptState = TimelineItemReadReceipts(others.toImmutableList())))
+                }
+            }
+        }
+    }
+    return this
+}
+
+/**
+ * MatriX: flags the message just after the read marker, which draws a thin line above it, as the marker takes no space.
+ * The items are the newest first, so it is the one before the marker.
+ */
+private fun List<TimelineItem>.withFirstUnread(): List<TimelineItem> {
+    val marker = indexOfFirst { it is TimelineItem.Virtual && it.model == TimelineItemReadMarkerModel }
+    val event = getOrNull(marker - 1) as? TimelineItem.Event ?: return this
+    return toMutableList().apply { set(marker - 1, event.copy(isFirstUnread = true)) }
+}
+
+internal fun EventTimelineItem.isKeyVerificationRequest(): Boolean {
     val messageType = (content as? MessageContent)?.type
     return messageType is OtherMessageType && messageType.isKeyVerificationRequest
 }

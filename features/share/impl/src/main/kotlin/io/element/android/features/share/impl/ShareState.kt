@@ -8,6 +8,7 @@
 
 package io.element.android.features.share.impl
 
+import io.element.android.features.share.api.UriToShare
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
@@ -25,4 +26,6 @@ data class ShareState(
 data class ShareResult(
     val sessionId: SessionId,
     val roomIds: List<RoomId>,
+    // MatriX: media not sent yet, to preview in the room
+    val mediaToPreview: List<UriToShare> = emptyList(),
 )

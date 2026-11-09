@@ -9,6 +9,7 @@
 package io.element.android.features.messages.impl.utils
 
 import org.junit.Assert
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,5 +35,17 @@ class EmojiTest {
         Assert.assertFalse(" 🙂 🙁 ".containsOnlyEmojis())
         Assert.assertFalse("Hello".containsOnlyEmojis())
         Assert.assertFalse("Hello 👋".containsOnlyEmojis())
+    }
+
+    @Test
+    fun singleEmoji() {
+        assertTrue("💋".isSingleEmoji())
+        assertTrue(" 👍 ".isSingleEmoji())
+        assertTrue("👨‍👩‍👦".isSingleEmoji())
+        assertTrue("👩🏿‍🔧".isSingleEmoji())
+        assertFalse("🙂🙁".isSingleEmoji())
+        assertFalse("😘😘😘".isSingleEmoji())
+        assertFalse("ok 👍".isSingleEmoji())
+        assertFalse("".isSingleEmoji())
     }
 }

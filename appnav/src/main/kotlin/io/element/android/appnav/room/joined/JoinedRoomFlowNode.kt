@@ -8,6 +8,7 @@
 
 package io.element.android.appnav.room.joined
 
+import android.net.Uri
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -136,6 +137,11 @@ class JoinedRoomFlowNode(
     suspend fun attachThread(threadId: ThreadId, focusedEventId: EventId?) {
         waitForChildAttached<JoinedRoomLoadedFlowNode>()
             .attachThread(threadId, focusedEventId)
+    }
+
+    suspend fun attachMediaPreview(media: List<Pair<Uri, String>>) {
+        waitForChildAttached<JoinedRoomLoadedFlowNode>()
+            .attachMediaPreview(media)
     }
 
     @Composable

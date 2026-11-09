@@ -27,6 +27,8 @@ data class AttachmentsPreviewState(
     val mediaOptimizationSelectorState: MediaOptimizationSelectorState,
     val displayFileTooLargeError: Boolean,
     val currentIndex: Int,
+    // MatriX: who the media are sent to
+    val roomName: String?,
     val eventSink: (AttachmentsPreviewEvent) -> Unit,
 ) {
     val isGallery: Boolean get() = attachments.size > 1

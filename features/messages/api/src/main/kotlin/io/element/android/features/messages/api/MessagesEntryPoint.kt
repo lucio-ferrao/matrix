@@ -8,6 +8,7 @@
 
 package io.element.android.features.messages.api
 
+import android.net.Uri
 import android.os.Parcelable
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
@@ -61,5 +62,12 @@ interface MessagesEntryPoint : FeatureEntryPoint {
          * @param focusedEventId the event to scroll to within the thread, or `null` to open at the latest message.
          */
         suspend fun attachThread(threadId: ThreadId, focusedEventId: EventId?)
+
+        /**
+         * MatriX: opens the attachments preview on top of the messages screen with media shared from another app.
+         *
+         * @param media the content of each media and its MIME type.
+         */
+        suspend fun attachMediaPreview(media: List<Pair<Uri, String>>)
     }
 }

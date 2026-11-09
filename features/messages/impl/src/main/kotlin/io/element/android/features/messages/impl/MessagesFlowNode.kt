@@ -8,6 +8,7 @@
 
 package io.element.android.features.messages.impl
 
+import android.net.Uri
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -108,18 +109,20 @@ import io.element.android.libraries.mediaviewer.api.GalleryInfo
 import io.element.android.libraries.mediaviewer.api.GalleryItemData
 import io.element.android.libraries.mediaviewer.api.MediaInfo
 import io.element.android.libraries.mediaviewer.api.MediaViewerEntryPoint
+import io.element.android.libraries.mediaviewer.api.local.LocalMediaFactory
 import io.element.android.libraries.textcomposer.mentions.LocalMentionSpanUpdater
 import io.element.android.libraries.textcomposer.mentions.MentionSpanTheme
 import io.element.android.libraries.textcomposer.mentions.MentionSpanUpdater
 import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analyticsproviders.api.trackers.captureInteraction
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
-import kotlin.time.Duration.Companion.milliseconds
 
 @ContributesNode(RoomScope::class)
 @AssistedInject
@@ -146,6 +149,7 @@ class MessagesFlowNode(
     private val knockRequestsListEntryPoint: KnockRequestsListEntryPoint,
     private val dateFormatter: DateFormatter,
     private val coroutineDispatchers: CoroutineDispatchers,
+    private val localMediaFactory: LocalMediaFactory,
     private val hasVulkanSupport: DeviceHasVulkanSupport,
 ) : BaseFlowNode<MessagesFlowNode.NavTarget>(
     backstack = BackStack(
@@ -952,6 +956,23 @@ class MessagesFlowNode(
         delay(10.milliseconds)
         // Then push the new threads screen on top
         backstack.push(NavTarget.Thread(threadId, focusedEventId))
+    }
+
+    override suspend fun attachMediaPreview(media: List<Pair<Uri, String>>) {
+        waitForChildAttached<MessagesNode>()
+        // Creating the LocalMedia queries the ContentResolver and can decode the media, so do it off the main thread
+        val attachments = withContext(coroutineDispatchers.io) {
+            media.map { (uri, mimeType) ->
+                Attachment.Media(localMediaFactory.createFromUri(uri = uri, mimeType = mimeType, name = null, formattedFileSize = null))
+            }
+        }
+        backstack.push(
+            NavTarget.AttachmentPreview(
+                attachments = attachments.toImmutableList(),
+                timelineMode = Timeline.Mode.Live,
+                inReplyToEventId = null,
+            )
+        )
     }
 
     private fun exitSelectionMode() {

@@ -11,6 +11,7 @@ package io.element.android.features.messages.impl.attachments.preview
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,6 +42,7 @@ import io.element.android.libraries.core.mimetype.MimeTypes.isMimeTypeVideo
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.permalink.PermalinkBuilder
+import io.element.android.libraries.matrix.api.room.BaseRoom
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.mediaupload.api.MediaOptimizationConfig
 import io.element.android.libraries.mediaupload.api.MediaOptimizationConfigProvider
@@ -50,15 +52,16 @@ import io.element.android.libraries.mediaupload.api.allFiles
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import io.element.android.libraries.textcomposer.model.TextEditorState
 import io.element.android.libraries.textcomposer.model.rememberMarkdownTextEditorState
+import java.io.File
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.io.File
 
 @AssistedInject
 class AttachmentsPreviewPresenter(
@@ -67,6 +70,7 @@ class AttachmentsPreviewPresenter(
     @Assisted private val timelineMode: Timeline.Mode,
     @Assisted private val inReplyToEventId: EventId?,
     mediaSenderFactory: MediaSenderFactory,
+    private val room: BaseRoom,
     private val permalinkBuilder: PermalinkBuilder,
     private val temporaryUriDeleter: TemporaryUriDeleter,
     private val attachmentImageEditor: AttachmentImageEditor,
@@ -413,6 +417,7 @@ class AttachmentsPreviewPresenter(
             }
         }
 
+        val roomName by remember { room.roomInfoFlow.map { it.name } }.collectAsState(room.info().name)
         return AttachmentsPreviewState(
             attachments = editedAttachments,
             imageEditorState = imageEditorState,
@@ -424,6 +429,7 @@ class AttachmentsPreviewPresenter(
             mediaOptimizationSelectorState = mediaOptimizationSelectorStates[currentIndex],
             displayFileTooLargeError = displayFileTooLargeError,
             currentIndex = currentIndex,
+            roomName = roomName,
             eventSink = ::handleEvent,
         )
     }

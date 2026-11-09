@@ -56,6 +56,7 @@ fun TimelineEventTimestampView(
     isLayoutDirectionMismatched: Boolean = false,
     showReadMark: Boolean = false,
     onReadMarkClick: () -> Unit = {},
+    isOverImage: Boolean = false,
 ) {
     // as in wassup, the separator of my message's time says where it is: "." on its way, ":" at the server
     val formattedTime = if (event.localSendState is LocalEventSendState.Sending) event.sentTime.replace(':', '.') else event.sentTime
@@ -63,7 +64,12 @@ fun TimelineEventTimestampView(
     val hasEncryptionCritical = event.messageShield?.isCritical.orFalse()
     val isMessageEdited = event.content.isEdited()
     val isMessageRedacted = event.content.isRedacted()
-    val tint = if (hasError || hasEncryptionCritical && !isMessageRedacted) ElementTheme.colors.textCriticalPrimary else ElementTheme.colors.textSecondary
+    val tint = when {
+        hasError || hasEncryptionCritical && !isMessageRedacted -> ElementTheme.colors.textCriticalPrimary
+        // MatriX: solid over an image, where its background is half transparent
+        isOverImage -> ElementTheme.colors.textPrimary
+        else -> ElementTheme.colors.textSecondary
+    }
 
     val shield = event.messageShield
     val isVerifiedUserSendFailure = event.localSendState is LocalEventSendState.Failed.VerifiedUser
@@ -74,7 +80,7 @@ fun TimelineEventTimestampView(
         else -> null
     }
     // my message is the last one the others have read
-    val isRead = showReadMark && event.isMine && event.readReceiptState.receipts.isNotEmpty() && !hasError
+    val isRead = showReadMark && event.isReadMark && !hasError
     val readMarkClickLabel = stringResource(CommonStrings.a11y_read_receipts_tap_to_show_all_android)
     val shape = RoundedCornerShape(8.dp)
     val clickableModifier = remember(event, isRead) {

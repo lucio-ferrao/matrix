@@ -980,6 +980,7 @@ class AttachmentsPreviewPresenterTest : RobolectricTest() {
         return AttachmentsPreviewPresenter(
             attachments = attachments.toImmutableList(),
             onDoneListener = onDoneListener,
+            room = room,
             mediaSenderFactory = MediaSenderFactory { timelineMode ->
                 DefaultMediaSender(
                     preProcessor = mediaPreProcessor,
