@@ -22,7 +22,6 @@ internal fun ATimelineItemEventRow(
     event: TimelineItem.Event,
     timelineMode: Timeline.Mode = Timeline.Mode.Live,
     timelineRoomInfo: TimelineRoomInfo = aTimelineRoomInfo(),
-    isLastOutgoingMessage: Boolean = false,
     timelineProtectionState: TimelineProtectionState = aTimelineProtectionState(),
     displayThreadSummaries: Boolean = false,
 ) = TimelineItemEventRow(
@@ -30,7 +29,6 @@ internal fun ATimelineItemEventRow(
     timelineMode = timelineMode,
     timelineRoomInfo = timelineRoomInfo,
     timelineProtectionState = timelineProtectionState,
-    isLastOutgoingMessage = isLastOutgoingMessage,
     displayThreadSummaries = displayThreadSummaries,
     onEventClick = {},
     onGalleryItemClick = {},

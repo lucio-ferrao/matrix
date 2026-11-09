@@ -76,8 +76,6 @@ import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.TimelineRoomInfo
 import io.element.android.features.messages.impl.timeline.aTimelineItemEvent
 import io.element.android.features.messages.impl.timeline.components.event.TimelineItemEventContentView
-import io.element.android.features.messages.impl.timeline.components.receipt.ReadReceiptViewState
-import io.element.android.features.messages.impl.timeline.components.receipt.TimelineItemReadReceiptView
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.TimelineItemGroupPosition
 import io.element.android.features.messages.impl.timeline.model.TimelineItemReactions
@@ -172,7 +170,6 @@ fun TimelineItemEventRow(
     timelineMode: Timeline.Mode,
     timelineRoomInfo: TimelineRoomInfo,
     timelineProtectionState: TimelineProtectionState,
-    isLastOutgoingMessage: Boolean,
     displayThreadSummaries: Boolean,
     onEventClick: () -> Unit,
     onGalleryItemClick: ((Int) -> Unit),
@@ -291,6 +288,7 @@ fun TimelineItemEventRow(
                         onReactionClick = { emoji -> onReactionClick(emoji, event) },
                         onReactionLongClick = { emoji -> onReactionLongClick(emoji, event) },
                         onMoreReactionsClick = { onMoreReactionsClick(event) },
+                        onReadReceiptClick = { onReadReceiptClick(event) },
                         modifier = Modifier
                             .absoluteOffset { IntOffset(x = state.offset.floatValue.roundToInt(), y = 0) }
                             .draggable(
@@ -328,6 +326,7 @@ fun TimelineItemEventRow(
                 onReactionClick = { emoji -> onReactionClick(emoji, event) },
                 onReactionLongClick = { emoji -> onReactionLongClick(emoji, event) },
                 onMoreReactionsClick = { onMoreReactionsClick(event) },
+                onReadReceiptClick = { onReadReceiptClick(event) },
                 eventSink = eventSink,
                 eventContentView = eventContentView,
             )
@@ -356,21 +355,6 @@ fun TimelineItemEventRow(
             )
         }
 
-        // Read receipts / Send state
-        val sendState = event.pendingSend()?.second
-        TimelineItemReadReceiptView(
-            state = ReadReceiptViewState(
-                sendState = sendState,
-                isLastOutgoingMessage = isLastOutgoingMessage,
-                renderReadReceipts = timelineRoomInfo.renderReadReceipts,
-                knownReceipts = event.readReceiptState.receipts,
-            ),
-            onReadReceiptsClick = { onReadReceiptClick(event) },
-            // Not slid: the read receipts sit outside the slid content, so they stay pinned to the end edge in selection mode.
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .hiddenFromAccessibilityWhile(isSelectionToggle)
-        )
     }
 }
 
@@ -534,6 +518,7 @@ private fun TimelineItemEventRowContent(
     onReactionClick: (emoji: String) -> Unit,
     onReactionLongClick: (emoji: String) -> Unit,
     onMoreReactionsClick: (event: TimelineItem.Event) -> Unit,
+    onReadReceiptClick: () -> Unit,
     eventSink: (TimelineEvent.TimelineItemEvent) -> Unit,
     modifier: Modifier = Modifier,
     selectionData: TimelineItemSelectionData = TimelineItemSelectionData(),
@@ -640,6 +625,8 @@ private fun TimelineItemEventRowContent(
         ) {
             MessageEventBubbleContent(
                 event = event,
+                showReadMark = timelineRoomInfo.renderReadReceipts,
+                onReadMarkClick = onReadReceiptClick,
                 timelineMode = timelineMode,
                 timelineProtectionState = timelineProtectionState,
                 onMessageLongClick = onLongClick,
@@ -753,6 +740,8 @@ private fun MessageSenderInformation(
 @Composable
 private fun MessageEventBubbleContent(
     event: TimelineItem.Event,
+    showReadMark: Boolean,
+    onReadMarkClick: () -> Unit,
     timelineMode: Timeline.Mode,
     timelineProtectionState: TimelineProtectionState,
     onMessageLongClick: () -> Unit,
@@ -808,14 +797,16 @@ private fun MessageEventBubbleContent(
                     content {}
                     TimelineEventTimestampView(
                         event = event,
+                        showReadMark = showReadMark,
+                        onReadMarkClick = onReadMarkClick,
                         eventSink = eventSink,
                         modifier = Modifier
                             // Outer padding
                             .padding(horizontal = 4.dp, vertical = 4.dp)
                             .background(ElementTheme.colors.bgSubtleSecondary, RoundedCornerShape(10.0.dp))
                             .align(Alignment.BottomEnd)
-                            // Inner padding
-                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            // Inner padding, wider at the end for the read mark drawn after the time
+                            .padding(start = 4.dp, end = 8.dp, top = 2.dp, bottom = 2.dp)
                     )
                 }
             TimestampPosition.Aligned -> @Composable {
@@ -846,6 +837,8 @@ private fun MessageEventBubbleContent(
                             CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDirection) {
                                 TimelineEventTimestampView(
                                     event = event,
+                                    showReadMark = showReadMark,
+                                    onReadMarkClick = onReadMarkClick,
                                     eventSink = eventSink,
                                     isLayoutDirectionMismatched = originalLayoutDirection != contentDirection,
                                     modifier = Modifier
@@ -861,6 +854,8 @@ private fun MessageEventBubbleContent(
                     content {}
                     TimelineEventTimestampView(
                         event = event,
+                        showReadMark = showReadMark,
+                        onReadMarkClick = onReadMarkClick,
                         eventSink = eventSink,
                         modifier = Modifier
                             .align(Alignment.End)

@@ -269,7 +269,9 @@ class MessagesViewTest : RobolectricTest() {
         val state = aMessagesState(
             timelineState = aTimelineState(
                 timelineItems = persistentListOf(
+                    // the read mark is next to the time of my messages
                     aTimelineItemEvent(
+                        isMine = true,
                         readReceiptState = aTimelineItemReadReceipts(
                             receipts = listOf(
                                 aReadReceiptData(0),

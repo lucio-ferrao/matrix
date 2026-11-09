@@ -22,8 +22,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
@@ -37,6 +45,7 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
+import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.ui.strings.CommonStrings
 
 @Composable
@@ -45,8 +54,11 @@ fun TimelineEventTimestampView(
     eventSink: (TimelineEvent.TimelineItemEvent) -> Unit,
     modifier: Modifier = Modifier,
     isLayoutDirectionMismatched: Boolean = false,
+    showReadMark: Boolean = false,
+    onReadMarkClick: () -> Unit = {},
 ) {
-    val formattedTime = event.sentTime
+    // as in wassup, the separator of my message's time says where it is: "." on its way, ":" at the server
+    val formattedTime = if (event.localSendState is LocalEventSendState.Sending) event.sentTime.replace(':', '.') else event.sentTime
     val hasError = event.failedToSend
     val hasEncryptionCritical = event.messageShield?.isCritical.orFalse()
     val isMessageEdited = event.content.isEdited()
@@ -61,8 +73,11 @@ fun TimelineEventTimestampView(
         isVerifiedUserSendFailure -> stringResource(CommonStrings.action_open_context_menu)
         else -> null
     }
+    // my message is the last one the others have read
+    val isRead = showReadMark && event.isMine && event.readReceiptState.receipts.isNotEmpty() && !hasError
+    val readMarkClickLabel = stringResource(CommonStrings.a11y_read_receipts_tap_to_show_all_android)
     val shape = RoundedCornerShape(8.dp)
-    val clickableModifier = remember(event) {
+    val clickableModifier = remember(event, isRead) {
         when {
             hasError -> {
                 Modifier.clickable(
@@ -82,6 +97,17 @@ fun TimelineEventTimestampView(
                     eventSink(TimelineEvent.ShowShieldDialog(shield))
                 }
             }
+            // the time with the read mark shows who has read
+            isRead -> {
+                Modifier
+                    .clickable(
+                        interactionSource = null,
+                        indication = ripple(focusRingShape = shape),
+                        onClickLabel = readMarkClickLabel,
+                        onClick = onReadMarkClick,
+                    )
+                    .testTag(TestTags.messageReadReceipts.value)
+            }
             else -> Modifier
         }
     }
@@ -99,41 +125,46 @@ fun TimelineEventTimestampView(
             .clip(shape)
             .then(clickableModifier)
             .then(modifier),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (isMessageEdited) {
+        // the read mark is drawn in the margin after the time, so the time does not move when it appears
+        Row(
+            modifier = if (isRead) Modifier.drawReadMark(tint) else Modifier,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isMessageEdited) {
+                Text(
+                    stringResource(CommonStrings.common_edited_suffix),
+                    style = ElementTheme.typography.fontBodyXsRegular,
+                    color = tint,
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
             Text(
-                stringResource(CommonStrings.common_edited_suffix),
+                formattedTime,
                 style = ElementTheme.typography.fontBodyXsRegular,
                 color = tint,
             )
-            Spacer(modifier = Modifier.width(4.dp))
-        }
-        Text(
-            formattedTime,
-            style = ElementTheme.typography.fontBodyXsRegular,
-            color = tint,
-        )
-        if (hasError) {
-            Spacer(modifier = Modifier.width(2.dp))
-            Icon(
-                imageVector = CompoundIcons.ErrorSolid(),
-                contentDescription = stringResource(id = CommonStrings.common_sending_failed),
-                tint = tint,
-                modifier = Modifier.size(15.dp, 18.dp),
-            )
-        }
-
-        if (!isMessageRedacted) {
-            shield?.let { shield ->
+            if (hasError) {
                 Spacer(modifier = Modifier.width(2.dp))
                 Icon(
-                    imageVector = shield.toIcon(),
-                    contentDescription = stringResource(id = CommonStrings.a11y_encryption_details),
-                    modifier = Modifier.size(15.dp),
-                    tint = shield.toIconColor(),
+                    imageVector = CompoundIcons.ErrorSolid(),
+                    contentDescription = stringResource(id = CommonStrings.common_sending_failed),
+                    tint = tint,
+                    modifier = Modifier.size(15.dp, 18.dp),
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+            }
+
+            if (!isMessageRedacted) {
+                shield?.let { shield ->
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Icon(
+                        imageVector = shield.toIcon(),
+                        contentDescription = stringResource(id = CommonStrings.a11y_encryption_details),
+                        modifier = Modifier.size(15.dp),
+                        tint = shield.toIconColor(),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
             }
         }
     }
@@ -152,4 +183,23 @@ internal fun TimelineEventTimestampViewPreview(@PreviewParameter(
 
 object TimelineEventTimestampViewDefaults {
     val spacing = 16.dp
+}
+
+/** A small open chevron (❮) just after the end of the content: the others have read up to this message. */
+private fun Modifier.drawReadMark(color: Color): Modifier = drawWithContent {
+    drawContent()
+    // wide open: about 120 degrees
+    val width = 2.5.dp.toPx()
+    val height = 9.dp.toPx()
+    val gap = 2.5.dp.toPx()
+    val left = if (layoutDirection == LayoutDirection.Ltr) size.width + gap else -gap - width
+    val top = (size.height - height) / 2
+    // pointing back to the time
+    val (from, to) = if (layoutDirection == LayoutDirection.Ltr) left + width to left else left to left + width
+    val path = Path().apply {
+        moveTo(from, top)
+        lineTo(to, top + height / 2)
+        lineTo(from, top + height)
+    }
+    drawPath(path, color = color, style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
 }

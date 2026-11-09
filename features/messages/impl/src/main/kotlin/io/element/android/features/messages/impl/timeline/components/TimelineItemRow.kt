@@ -278,7 +278,6 @@ private fun TimelineItemRowContent(
                             timelineMode = timelineMode,
                             timelineRoomInfo = timelineRoomInfo,
                             timelineProtectionState = timelineProtectionState,
-                            isLastOutgoingMessage = isLastOutgoingMessage,
                             displayThreadSummaries = displayThreadSummaries,
                             onEventClick = { onContentClick(timelineItem) },
                             onLongClick = { onLongClick(timelineItem) },
