@@ -43,6 +43,7 @@ import io.element.android.annotations.ContributesNode
 import io.element.android.appnav.loggedin.LoggedInNode
 import io.element.android.appnav.loggedin.MediaPreviewConfigMigration
 import io.element.android.appnav.loggedin.SendQueues
+import io.element.android.appnav.loggedin.TypingShortcuts
 import io.element.android.appnav.room.RoomFlowNode
 import io.element.android.appnav.room.RoomNavigationTarget
 import io.element.android.appnav.room.joined.JoinedRoomLoadedFlowNode
@@ -155,6 +156,7 @@ class LoggedInFlowNode(
     private val activeLiveLocationShareManager: ActiveLiveLocationShareManager,
     private val locationService: LocationService,
     private val loggedInEventProcessorFactory: LoggedInEventProcessor.Factory,
+    private val typingShortcuts: TypingShortcuts,
 ) : BaseFlowNode<LoggedInFlowNode.NavTarget>(
     backstack = BackStack(
         initialElement = NavTarget.Placeholder,
@@ -227,6 +229,8 @@ class LoggedInFlowNode(
                 lifecycleScope.launch {
                     val availableRoomIds = matrixClient.getJoinedRoomIds().getOrNull() ?: return@launch
                     notificationConversationService.onAvailableRoomsChanged(sessionId = matrixClient.sessionId, roomIds = availableRoomIds)
+                    // MatriX: who is typing, for the launcher, in the rooms with a shortcut
+                    typingShortcuts.start()
                 }
             },
             onDestroy = {
