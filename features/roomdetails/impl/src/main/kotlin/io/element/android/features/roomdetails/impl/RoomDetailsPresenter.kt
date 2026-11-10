@@ -49,6 +49,7 @@ import io.element.android.libraries.matrix.api.room.powerlevels.canEditRolesAndP
 import io.element.android.libraries.matrix.api.room.powerlevels.permissionsAsState
 import io.element.android.libraries.matrix.api.room.roomNotificationSettings
 import io.element.android.libraries.matrix.api.timeline.ReceiptType
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.libraries.matrix.ui.room.getDirectRoomMember
 import io.element.android.libraries.matrix.ui.room.roomMemberIdentityStateChange
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
@@ -59,6 +60,7 @@ import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analyticsproviders.api.trackers.captureInteraction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -79,6 +81,7 @@ class RoomDetailsPresenter(
     private val appPreferencesStore: AppPreferencesStore,
     private val sessionPreferencesStore: SessionPreferencesStore,
     private val notificationCleaner: NotificationCleaner,
+    private val contactNicknames: ContactNicknames,
 ) : Presenter<RoomDetailsState> {
     @AssistedFactory
     interface Factory {
@@ -122,6 +125,9 @@ class RoomDetailsPresenter(
         val dmMember by room.getDirectRoomMember(membersState)
         val roomMemberDetailsPresenter = roomMemberDetailsPresenter(dmMember?.userId)
         val roomType = getRoomType(dmMember)
+        val contactNickname by remember(dmMember?.userId) {
+            dmMember?.userId?.let { contactNicknames.nicknameFlow(it) } ?: flowOf(null)
+        }.collectAsState(initial = null)
         val roomCallState = roomCallStatePresenter.present()
         val joinedMemberCount by remember { derivedStateOf { roomInfo.joinedMembersCount } }
 
@@ -180,6 +186,9 @@ class RoomDetailsPresenter(
                 }
                 is RoomDetailsEvent.MarkAsRead -> scope.markAsRead()
                 is RoomDetailsEvent.MarkAsUnread -> scope.markAsUnread()
+                is RoomDetailsEvent.SetContactNickname -> dmMember?.userId?.let { userId ->
+                    scope.launch { contactNicknames.setNickname(userId, event.nickname) }
+                }
             }
         }
 
@@ -224,6 +233,7 @@ class RoomDetailsPresenter(
             roomVersion = roomInfo.roomVersion,
             roomHistoryVisibility = roomInfo.historyVisibility,
             hasNewContent = hasNewContent,
+            contactNickname = contactNickname,
             eventSink = ::handleEvent,
         )
     }

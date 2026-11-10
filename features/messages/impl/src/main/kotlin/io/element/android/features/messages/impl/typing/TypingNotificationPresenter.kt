@@ -23,6 +23,7 @@ import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.roomMembers
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -30,13 +31,13 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Inject
 class TypingNotificationPresenter(
     private val room: JoinedRoom,
     private val sessionPreferencesStore: SessionPreferencesStore,
+    private val contactNicknames: ContactNicknames,
 ) : Presenter<TypingNotificationState> {
     @Composable
     override fun present(): TypingNotificationState {
@@ -59,8 +60,9 @@ class TypingNotificationPresenter(
             }
         }
 
+        // MatriX: with the name given to them, if any
         val dmMemberName by remember {
-            room.roomInfoFlow.map { info -> info.name.takeIf { info.isDm } }.distinctUntilChanged()
+            combine(room.roomInfoFlow, contactNicknames.roomNameFlow(room)) { info, name -> name.takeIf { info.isDm } }.distinctUntilChanged()
         }.collectAsState(initial = room.info().let { info -> info.name.takeIf { info.isDm } })
 
         return TypingNotificationState(

@@ -58,6 +58,7 @@ import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.components.button.MainActionButton
+import io.element.android.libraries.designsystem.components.dialogs.TextFieldDialog
 import io.element.android.libraries.designsystem.components.list.ListItemContent
 import io.element.android.libraries.designsystem.components.preferences.PreferenceCategory
 import io.element.android.libraries.designsystem.components.preferences.PreferenceSwitch
@@ -286,6 +287,11 @@ fun RoomDetailsView(
                             ProfileItem(
                                 verificationState = dmMemberDetails.verificationState,
                                 onClick = { onProfileClick(dmMemberDetails.userId) }
+                            )
+                            RenameContactItem(
+                                nickname = state.contactNickname,
+                                originalName = state.roomType.otherMember.displayName,
+                                onRename = { state.eventSink(RoomDetailsEvent.SetContactNickname(it)) },
                             )
                         }
                     }
@@ -726,6 +732,33 @@ private fun FavoriteItem(
         isChecked = isFavorite,
         onCheckedChange = onFavoriteChanges
     )
+}
+
+/** MatriX: a private name for the other person, only for the user. A blank name gives back their own. */
+@Composable
+private fun RenameContactItem(
+    nickname: String?,
+    originalName: String?,
+    onRename: (String) -> Unit,
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    ListItem(
+        leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Edit())),
+        content = { Text(stringResource(id = R.string.matrix_rename_contact)) },
+        onClick = { showDialog = true },
+    )
+    if (showDialog) {
+        TextFieldDialog(
+            title = stringResource(id = R.string.matrix_rename_contact),
+            value = nickname,
+            placeholder = originalName,
+            onSubmit = {
+                showDialog = false
+                onRename(it)
+            },
+            onDismissRequest = { showDialog = false },
+        )
+    }
 }
 
 @Composable

@@ -17,4 +17,7 @@ sealed interface RoomDetailsEvent {
     data class SetFavorite(val isFavorite: Boolean) : RoomDetailsEvent
     data object MarkAsRead : RoomDetailsEvent
     data object MarkAsUnread : RoomDetailsEvent
+
+    /** MatriX: gives a private name to the other person of a room of two, or removes it when blank. */
+    data class SetContactNickname(val nickname: String) : RoomDetailsEvent
 }

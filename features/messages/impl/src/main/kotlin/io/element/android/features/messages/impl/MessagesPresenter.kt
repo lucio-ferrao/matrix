@@ -89,6 +89,7 @@ import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.SendTarget
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
 import io.element.android.libraries.matrix.api.timeline.item.event.toEventOrTransactionId
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.libraries.matrix.ui.messages.reply.map
 import io.element.android.libraries.matrix.ui.model.dmUserStatus
 import io.element.android.libraries.matrix.ui.model.getAvatarData
@@ -96,6 +97,7 @@ import io.element.android.libraries.matrix.ui.room.getDirectRoomMember
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.services.analytics.api.AnalyticsService
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
@@ -104,7 +106,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.concurrent.atomic.AtomicBoolean
 
 @AssistedInject
 class MessagesPresenter(
@@ -133,6 +134,7 @@ class MessagesPresenter(
     private val analyticsService: AnalyticsService,
     private val encryptionService: EncryptionService,
     private val featureFlagService: FeatureFlagService,
+    private val contactNicknames: ContactNicknames,
     private val addRecentEmoji: AddRecentEmoji,
     private val markAsFullyRead: MarkAsFullyRead,
     private val liveLocationShareManager: ActiveLiveLocationShareManager,
@@ -161,6 +163,8 @@ class MessagesPresenter(
 
         val coroutineScope = rememberCoroutineScope()
         val roomInfo by room.roomInfoFlow.collectAsState()
+        // MatriX: in a room of two, the name given to the other person
+        val roomName by remember { contactNicknames.roomNameFlow(room) }.collectAsState(roomInfo.name)
         val localCoroutineScope = rememberCoroutineScope()
         val composerState = composerPresenter.present()
         val voiceMessageComposerState = voiceMessageComposerPresenter.present()
@@ -329,7 +333,7 @@ class MessagesPresenter(
 
         return MessagesState(
             roomId = room.roomId,
-            roomName = roomInfo.name,
+            roomName = roomName,
             roomAvatar = roomAvatar,
             heroes = heroes,
             userEventPermissions = userEventPermissions,
