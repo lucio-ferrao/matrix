@@ -18,13 +18,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.libraries.designsystem.atomic.atoms.PlaceholderAtom
+import io.element.android.libraries.designsystem.components.avatar.AvatarCornerShape
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -47,7 +47,7 @@ internal fun RoomSummaryPlaceholderRow(
             modifier = Modifier
                 .size(AvatarSize.RoomListItem.dp)
                 .align(Alignment.CenterVertically)
-                .background(color = ElementTheme.colors.placeholderBackground, shape = CircleShape)
+                .background(color = ElementTheme.colors.placeholderBackground, shape = AvatarCornerShape)
         )
         Column(
             modifier = Modifier

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -39,6 +38,7 @@ import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.messages.impl.timeline.model.ReadReceiptData
 import io.element.android.libraries.designsystem.components.avatar.Avatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarCornerShape
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.avatar.AvatarType
@@ -180,7 +180,7 @@ private fun ReadReceiptsAvatars(
                         modifier = Modifier
                             .padding(end = (12.dp + avatarStrokeSize * 2) * index)
                             .size(size = avatarSize + avatarStrokeSize * 2)
-                            .clip(CircleShape)
+                            .clip(AvatarCornerShape)
                             .background(avatarStrokeColor)
                             .zIndex(index.toFloat()),
                         contentAlignment = Alignment.Center,

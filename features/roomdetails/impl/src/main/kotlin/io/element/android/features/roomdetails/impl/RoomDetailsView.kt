@@ -52,6 +52,7 @@ import io.element.android.libraries.designsystem.atomic.atoms.MatrixBadgeAtom
 import io.element.android.libraries.designsystem.atomic.molecules.MatrixBadgeRowMolecule
 import io.element.android.libraries.designsystem.components.ClickableLinkText
 import io.element.android.libraries.designsystem.components.avatar.Avatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarCornerShape
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.avatar.AvatarType
@@ -484,10 +485,10 @@ private fun RoomHeaderSection(
             ),
             contentDescription = stringResource(CommonStrings.a11y_room_avatar),
             modifier = Modifier
-                .clip(CircleShape)
+                .clip(AvatarCornerShape)
                 .clickable(
                     interactionSource = null,
-                    indication = ripple(focusRingShape = CircleShape),
+                    indication = ripple(focusRingShape = AvatarCornerShape),
                     enabled = avatarUrl != null,
                     onClickLabel = stringResource(CommonStrings.action_view),
                 ) {
@@ -540,10 +541,10 @@ private fun DmHeaderSection(
             ),
             contentDescription = stringResource(CommonStrings.a11y_room_avatar),
             modifier = Modifier
-                .clip(CircleShape)
+                .clip(AvatarCornerShape)
                 .clickable(
                     interactionSource = null,
-                    indication = ripple(focusRingShape = CircleShape),
+                    indication = ripple(focusRingShape = AvatarCornerShape),
                     enabled = otherMember.avatarUrl != null,
                     onClickLabel = stringResource(CommonStrings.action_view),
                 ) {

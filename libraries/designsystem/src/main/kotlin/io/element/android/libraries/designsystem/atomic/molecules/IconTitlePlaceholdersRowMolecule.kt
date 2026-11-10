@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.libraries.designsystem.atomic.atoms.PlaceholderAtom
+import io.element.android.libraries.designsystem.components.avatar.AvatarCornerShape
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -44,7 +44,7 @@ fun IconTitlePlaceholdersRowMolecule(
             modifier = Modifier
                 .size(iconSize)
                 .align(Alignment.CenterVertically)
-                .background(color = ElementTheme.colors.placeholderBackground, shape = CircleShape)
+                .background(color = ElementTheme.colors.placeholderBackground, shape = AvatarCornerShape)
         )
         Spacer(modifier = Modifier.width(8.dp))
         PlaceholderAtom(width = 20.dp, height = 7.dp)

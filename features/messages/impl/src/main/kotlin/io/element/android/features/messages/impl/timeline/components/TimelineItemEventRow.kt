@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -103,6 +102,7 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.colors.AvatarColorsProvider
 import io.element.android.libraries.designsystem.components.EqualWidthColumn
 import io.element.android.libraries.designsystem.components.avatar.Avatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarCornerShape
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.avatar.AvatarType
@@ -725,10 +725,10 @@ private fun MessageSenderInformation(
         Avatar(
             modifier = Modifier
                 .testTag(TestTags.timelineItemSenderAvatar)
-                .clip(CircleShape)
+                .clip(AvatarCornerShape)
                 .clickable(
                     interactionSource = null,
-                    indication = ripple(focusRingShape = CircleShape),
+                    indication = ripple(focusRingShape = AvatarCornerShape),
                     onClick = onClick,
                 ),
             avatarData = senderAvatar,

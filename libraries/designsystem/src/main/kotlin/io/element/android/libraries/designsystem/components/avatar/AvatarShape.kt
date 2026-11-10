@@ -8,17 +8,20 @@
 
 package io.element.android.libraries.designsystem.components.avatar
 
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+/** MatriX: people and rooms are squares with the rounded corners of the messages. */
+val AvatarCornerShape = RoundedCornerShape(4.dp)
 
 @Composable
-fun AvatarType.User.avatarShape() = CircleShape
+fun AvatarType.User.avatarShape() = AvatarCornerShape
 
 @Composable
-fun AvatarType.Room.avatarShape() = CircleShape
+fun AvatarType.Room.avatarShape() = AvatarCornerShape
 
 @Composable
 fun AvatarType.Space.avatarShape(avatarSize: Dp) = RoundedCornerShape(avatarSize * 0.25f)

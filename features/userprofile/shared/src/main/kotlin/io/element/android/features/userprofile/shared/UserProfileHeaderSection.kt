@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,6 +31,7 @@ import io.element.android.features.userprofile.api.UserProfileVerificationState
 import io.element.android.libraries.designsystem.atomic.atoms.MatrixBadgeAtom
 import io.element.android.libraries.designsystem.atomic.molecules.MatrixBadgeRowMolecule
 import io.element.android.libraries.designsystem.components.avatar.Avatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarCornerShape
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.avatar.AvatarType
@@ -73,10 +73,10 @@ fun UserProfileHeaderSection(
             avatarType = AvatarType.User,
             contentDescription = stringResource(CommonStrings.a11y_user_avatar),
             modifier = Modifier
-                .clip(CircleShape)
+                .clip(AvatarCornerShape)
                 .clickable(
                     interactionSource = null,
-                    indication = ripple(focusRingShape = CircleShape),
+                    indication = ripple(focusRingShape = AvatarCornerShape),
                     enabled = avatarUrl != null,
                     onClickLabel = stringResource(CommonStrings.action_view),
                 ) {
