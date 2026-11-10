@@ -8,10 +8,8 @@
 package io.element.android.appnav.loggedin
 
 import android.content.Context
-import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.os.Build
-import android.os.PersistableBundle
 import dev.zacsweers.metro.Inject
 import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
@@ -24,16 +22,16 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 /**
- * MatriX: whether someone is typing in a room with a conversation shortcut, put in that shortcut's extras
- * ([EXTRA_TYPING]: when it was last seen, 0 when nobody types) for the Keyarchy launcher, which animates the icon of
- * the person. Only while the sync runs: the launcher drops a time older than its limit, so a stop missed when the sync
- * ends does not leave someone typing.
+ * MatriX: whether someone is typing in a room with a conversation shortcut, for the Keyarchy launcher, which animates
+ * the icon of the person: told by [TypingProvider], live, and not in the shortcuts (Android lets an app in the
+ * background update its shortcuts only 10 times a day). Only while the sync runs: the time is told again while the
+ * typing lasts, and the launcher drops one older than its limit, so a stop missed when the sync ends does not leave
+ * someone typing.
  */
 @Inject
-class TypingShortcuts(
+class TypingRooms(
     @ApplicationContext private val context: Context,
     private val matrixClient: MatrixClient,
     @SessionCoroutineScope private val sessionCoroutineScope: CoroutineScope,
@@ -48,36 +46,29 @@ class TypingShortcuts(
             val manager = context.getSystemService(ShortcutManager::class.java) ?: return@launch
             val prefix = "${matrixClient.sessionId.value}-"
             manager.dynamicShortcuts.map { it.id }.filter { it.startsWith(prefix) }.forEach { id ->
-                launch { watch(manager, id, RoomId(id.removePrefix(prefix))) }
+                launch { watch(RoomId(id.removePrefix(prefix))) }
             }
         }
     }
 
-    private suspend fun watch(manager: ShortcutManager, shortcutId: String, roomId: RoomId) {
+    private suspend fun watch(roomId: RoomId) {
         val room = matrixClient.getJoinedRoom(roomId) ?: return
         try {
             room.roomTypingMembersFlow.map { it.isNotEmpty() }.distinctUntilChanged().collectLatest { typing ->
-                if (!typing) return@collectLatest publish(manager, shortcutId, 0L)
+                if (!typing) return@collectLatest TypingProvider.set(context, roomId.value, 0L)
                 // again while it lasts, before the launcher takes it as stopped
                 while (true) {
-                    publish(manager, shortcutId, System.currentTimeMillis())
+                    TypingProvider.set(context, roomId.value, System.currentTimeMillis())
                     delay(REFRESH_MS)
                 }
             }
         } finally {
+            TypingProvider.set(context, roomId.value, 0L)
             room.destroy()
         }
     }
 
-    private fun publish(manager: ShortcutManager, shortcutId: String, time: Long) {
-        // only the extras change: an update keeps the rest of the shortcut
-        val extras = PersistableBundle().apply { putLong(EXTRA_TYPING, time) }
-        runCatching { manager.updateShortcuts(listOf(ShortcutInfo.Builder(context, shortcutId).setExtras(extras).build())) }
-            .onFailure { Timber.w(it, "Could not mark typing on shortcut $shortcutId") }
-    }
-
     private companion object {
-        const val EXTRA_TYPING = "org.ferrao.homekey.typing"
         const val REFRESH_MS = 20_000L
     }
 }

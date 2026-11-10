@@ -172,6 +172,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_providers" />
         </provider>
+        <!-- MatriX: who types in a room, for the Keyarchy launcher; the provider checks the caller's package itself -->
+        <provider
+            android:name="io.element.android.appnav.loggedin.TypingProvider"
+            android:authorities="${applicationId}.typing"
+            android:exported="true" />
     </application>
 
 </manifest>

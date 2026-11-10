@@ -17,17 +17,19 @@ import io.element.android.libraries.matrix.api.roomlist.RoomListService
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_ROOM_ID_2
 import io.element.android.libraries.matrix.test.A_ROOM_ID_3
+import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.notificationsettings.FakeNotificationSettingsService
 import io.element.android.libraries.matrix.test.room.aRoomSummary
 import io.element.android.libraries.matrix.test.roomlist.FakeDynamicRoomList
 import io.element.android.libraries.matrix.test.roomlist.FakeRoomListService
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.services.analytics.test.FakeAnalyticsService
 import io.element.android.tests.testutils.testCoroutineDispatchers
+import java.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import java.time.Instant
 
 class RoomListDataSourceTest {
     @Test
@@ -274,5 +276,6 @@ class RoomListDataSourceTest {
         sessionCoroutineScope = backgroundScope,
         dateTimeObserver = dateTimeObserver,
         analyticsService = analyticsService,
+        contactNicknames = ContactNicknames(FakeMatrixClient(getAccountDataLambda = { Result.success(null) }), backgroundScope),
     )
 }

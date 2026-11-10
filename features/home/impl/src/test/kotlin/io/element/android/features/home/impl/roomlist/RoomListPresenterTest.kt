@@ -68,6 +68,7 @@ import io.element.android.libraries.matrix.test.roomlist.FakeDynamicRoomList
 import io.element.android.libraries.matrix.test.roomlist.FakeRoomListService
 import io.element.android.libraries.matrix.test.sync.FakeSyncService
 import io.element.android.libraries.matrix.test.verification.FakeSessionVerificationService
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
 import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
 import io.element.android.libraries.push.api.battery.aBatteryOptimizationState
@@ -87,6 +88,7 @@ import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
 import io.element.android.tests.testutils.test
 import io.element.android.tests.testutils.testCoroutineDispatchers
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -95,7 +97,6 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
-import kotlin.time.Duration.Companion.seconds
 
 class RoomListPresenterTest {
     @get:Rule
@@ -785,6 +786,7 @@ class RoomListPresenterTest {
             sessionCoroutineScope = backgroundScope,
             dateTimeObserver = FakeDateTimeObserver(),
             analyticsService = FakeAnalyticsService(),
+            contactNicknames = ContactNicknames(FakeMatrixClient(getAccountDataLambda = { Result.success(null) }), backgroundScope),
         ),
         searchPresenter = searchPresenter,
         globalSearchPresenter = { aGlobalSearchState() },

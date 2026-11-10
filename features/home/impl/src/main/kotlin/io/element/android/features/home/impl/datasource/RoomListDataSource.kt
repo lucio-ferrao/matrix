@@ -18,13 +18,16 @@ import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.notificationsettings.NotificationSettingsService
 import io.element.android.libraries.matrix.api.roomlist.RoomList
 import io.element.android.libraries.matrix.api.roomlist.RoomListFilter
 import io.element.android.libraries.matrix.api.roomlist.RoomListService
 import io.element.android.libraries.matrix.api.roomlist.RoomSummary
 import io.element.android.libraries.matrix.api.roomlist.updateVisibleRange
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.services.analytics.api.AnalyticsService
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +37,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -42,7 +46,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlin.time.Duration.Companion.seconds
 
 private const val PAGE_SIZE = 20
 private const val EXTENDED_VISIBILITY_RANGE_SIZE = 40
@@ -60,6 +63,7 @@ class RoomListDataSource(
     private val sessionCoroutineScope: CoroutineScope,
     private val dateTimeObserver: DateTimeObserver,
     private val analyticsService: AnalyticsService,
+    private val contactNicknames: ContactNicknames,
 ) {
     init {
         observeNotificationSettings()
@@ -79,7 +83,17 @@ class RoomListDataSource(
         old?.roomId == new?.roomId
     }
 
-    val roomSummariesFlow: Flow<ImmutableList<RoomListRoomSummary>> = _roomSummariesFlow
+    // MatriX: a room of two has the name given to the other person, if any
+    val roomSummariesFlow: Flow<ImmutableList<RoomListRoomSummary>> = combine(_roomSummariesFlow, contactNicknames.all) { summaries, nicknames ->
+        if (nicknames.isEmpty()) {
+            summaries
+        } else {
+            summaries.map { summary ->
+                val nickname = summary.heroes.singleOrNull()?.let { nicknames[UserId(it.id)] }.takeIf { summary.isDm }
+                if (nickname != null) summary.copy(name = nickname) else summary
+            }.toImmutableList()
+        }
+    }
 
     val loadingState = roomList.loadingState
 
