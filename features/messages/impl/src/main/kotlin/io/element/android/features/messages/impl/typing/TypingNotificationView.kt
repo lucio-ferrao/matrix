@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -51,6 +52,8 @@ fun TypingNotificationView(
     modifier: Modifier = Modifier,
 ) {
     val displayNotifications = state.typingMembers.isNotEmpty() && state.renderTypingNotifications
+    // MatriX: in a room with one other person their name is always there, replaced by the notification while they type
+    val dmMemberName = state.dmMemberName
 
     @Suppress("ModifierNaming")
     @Composable
@@ -69,12 +72,18 @@ fun TypingNotificationView(
     AnimatedVisibility(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        visible = displayNotifications || state.reserveSpace,
+            // MatriX: the name of the other person in a room of two sits in the middle of the space above the composer
+            .padding(if (dmMemberName != null) PaddingValues(top = 10.dp) else PaddingValues(vertical = 2.dp)),
+        visible = displayNotifications || state.reserveSpace || dmMemberName != null,
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically(),
     ) {
-        val typingNotificationText = computeTypingNotificationText(state.typingMembers)
+        val typingText = computeTypingNotificationText(state.typingMembers)
+        val typingNotificationText = if (dmMemberName != null && !displayNotifications) {
+            buildAnnotatedString { withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(dmMemberName) } }
+        } else {
+            typingText
+        }
         Box(contentAlignment = Alignment.BottomStart) {
             // Reserve the space for the typing notification by adding an invisible text
             TypingText(
@@ -87,7 +96,7 @@ fun TypingNotificationView(
 
             // Display the actual notification
             AnimatedVisibility(
-                visible = displayNotifications,
+                visible = displayNotifications || dmMemberName != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {

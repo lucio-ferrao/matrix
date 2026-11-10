@@ -30,6 +30,7 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Inject
@@ -58,10 +59,15 @@ class TypingNotificationPresenter(
             }
         }
 
+        val dmMemberName by remember {
+            room.roomInfoFlow.map { info -> info.name.takeIf { info.isDm } }.distinctUntilChanged()
+        }.collectAsState(initial = room.info().let { info -> info.name.takeIf { info.isDm } })
+
         return TypingNotificationState(
             renderTypingNotifications = renderTypingNotifications,
             typingMembers = typingMembersState,
             reserveSpace = reserveSpace,
+            dmMemberName = dmMemberName,
         )
     }
 

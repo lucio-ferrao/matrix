@@ -759,14 +759,16 @@ class MessageComposerPresenter(
                 messageComposerContext.composerMode = MessageComposerMode.Reply(
                     replyToDetails = InReplyToDetails.Loading(draftType.eventId),
                     // I guess it's fine to always render the image when restoring a draft
-                    hideImage = false
+                    hideImage = false,
+                    hideSender = room.info().isDm,
                 )
                 timelineController.invokeOnCurrentTimeline {
                     val replyToDetails = loadReplyDetails(draftType.eventId).map(permalinkParser)
                     messageComposerContext.composerMode = MessageComposerMode.Reply(
                         replyToDetails = replyToDetails,
                         // I guess it's fine to always render the image when restoring a draft
-                        hideImage = false
+                        hideImage = false,
+                        hideSender = room.info().isDm,
                     )
                 }
             }

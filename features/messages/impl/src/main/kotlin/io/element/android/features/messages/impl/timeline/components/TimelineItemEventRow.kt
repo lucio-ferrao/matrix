@@ -643,6 +643,7 @@ private fun TimelineItemEventRowContent(
                 event = event,
                 showReadMark = timelineRoomInfo.renderReadReceipts,
                 onReadMarkClick = onReadReceiptClick,
+                hideReplySender = timelineRoomInfo.isDm,
                 timelineMode = timelineMode,
                 timelineProtectionState = timelineProtectionState,
                 onMessageLongClick = onLongClick,
@@ -757,6 +758,8 @@ private fun MessageEventBubbleContent(
     event: TimelineItem.Event,
     showReadMark: Boolean,
     onReadMarkClick: () -> Unit,
+    // MatriX: in a room with one other person, quotes without the name of the sender
+    hideReplySender: Boolean,
     timelineMode: Timeline.Mode,
     timelineProtectionState: TimelineProtectionState,
     onMessageLongClick: () -> Unit,
@@ -958,13 +961,12 @@ private fun MessageEventBubbleContent(
             }
 
             val contentHasError = currentContentValidationState.hasError() || inReplyTo is InReplyToDetails.Error
-            val borderColor = if (contentHasError) ElementTheme.colors.borderCriticalSubtle else ElementTheme.colors.separatorPrimary
             val backgroundColor = if (contentHasError) ElementTheme.colors.bgCriticalSubtle else ElementTheme.colors.bgCanvasDefault
             Box(
+                // MatriX: without border nor padding, so the green bar of the quote is its start edge
                 modifier = talkbackCompatModifier
-                    .border(1.dp, borderColor, shape)
-                    .background(backgroundColor, shape)
-                    .padding(4.dp)
+                    .clip(shape)
+                    .background(backgroundColor)
             ) {
                 val contentValidationState = rememberEventContentValidationState(eventId = inReplyTo.eventId(), eventContent = inReplyTo.content())
                 val updatedEventSink by rememberUpdatedState(eventSink)
@@ -976,6 +978,7 @@ private fun MessageEventBubbleContent(
                     inReplyTo = inReplyTo,
                     contentValidationValue = currentContentValidationState,
                     hideImage = timelineProtectionState.hideMediaContent(inReplyTo.eventId()),
+                    hideSender = hideReplySender,
                 )
             }
         }

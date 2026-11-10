@@ -10,10 +10,14 @@ package io.element.android.libraries.matrix.ui.messages.reply
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -62,6 +66,8 @@ fun InReplyToView(
     contentValidationValue: ContentValidationValue,
     modifier: Modifier = Modifier,
     maxLines: Int = 2,
+    // MatriX: without the name of the sender, in a room with one other person
+    hideSender: Boolean = false,
 ) {
     when (inReplyTo) {
         is InReplyToDetails.Ready -> when (contentValidationValue) {
@@ -70,6 +76,7 @@ fun InReplyToView(
                 senderProfile = inReplyTo.senderProfile,
                 metadata = inReplyTo.metadata(hideImage),
                 maxLines = maxLines,
+                hideSender = hideSender,
                 modifier = modifier,
             )
             ContentValidationValue.Invalid -> ReplyToInvalidContent()
@@ -89,44 +96,56 @@ private fun ReplyToReadyContent(
     senderProfile: ProfileDetails,
     metadata: InReplyToMetadata?,
     maxLines: Int,
+    hideSender: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val paddings = if (metadata is InReplyToMetadata.Thumbnail) {
-        PaddingValues(end = 8.dp)
+        PaddingValues(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
     } else {
-        PaddingValues(horizontal = 8.dp)
+        PaddingValues(horizontal = 8.dp, vertical = 4.dp)
     }
     Row(
         modifier
             .background(ElementTheme.colors.bgCanvasDefault)
-            .padding(paddings)
+            // MatriX: a green bar as the start edge, as in WhatsApp (the box around it clips it to its rounded corners)
+            .height(IntrinsicSize.Min)
     ) {
-        if (metadata is InReplyToMetadata.Thumbnail) {
-            AttachmentThumbnail(
-                info = metadata.attachmentThumbnailInfo,
-                backgroundColor = ElementTheme.colors.bgSubtlePrimary,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(4.dp))
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-        val a11InReplyToText = stringResource(CommonStrings.common_in_reply_to, senderProfile.getDisambiguatedDisplayName(senderId))
-        Column(
-            modifier = Modifier.semantics(mergeDescendants = false) { isTraversalGroup = true },
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            SenderName(
-                senderId = senderId,
-                senderProfile = senderProfile,
-                senderNameMode = SenderNameMode.Reply,
-                modifier = Modifier.semantics {
-                    contentDescription = a11InReplyToText
-                    isTraversalGroup = true
-                    traversalIndex = 1f
-                },
-            )
-            ReplyToContentText(metadata, maxLines)
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .width(4.dp)
+                .background(ElementTheme.colors.textActionAccent)
+        )
+        Row(Modifier.padding(paddings)) {
+            if (metadata is InReplyToMetadata.Thumbnail) {
+                AttachmentThumbnail(
+                    info = metadata.attachmentThumbnailInfo,
+                    backgroundColor = ElementTheme.colors.bgSubtlePrimary,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            val a11InReplyToText = stringResource(CommonStrings.common_in_reply_to, senderProfile.getDisambiguatedDisplayName(senderId))
+            Column(
+                modifier = Modifier.semantics(mergeDescendants = false) { isTraversalGroup = true },
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (!hideSender) {
+                    SenderName(
+                        senderId = senderId,
+                        senderProfile = senderProfile,
+                        senderNameMode = SenderNameMode.Reply,
+                        modifier = Modifier.semantics {
+                            contentDescription = a11InReplyToText
+                            isTraversalGroup = true
+                            traversalIndex = 1f
+                        },
+                    )
+                }
+                ReplyToContentText(metadata, maxLines)
+            }
         }
     }
 }

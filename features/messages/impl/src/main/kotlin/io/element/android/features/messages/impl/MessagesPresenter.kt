@@ -626,6 +626,7 @@ class MessagesPresenter(
             val composerMode = MessageComposerMode.Reply(
                 replyToDetails = replyToDetails,
                 hideImage = timelineProtectionState.hideMediaContent(targetEvent.eventId, targetEvent.isMine),
+                hideSender = room.info().isDm,
             )
             composerState.eventSink(
                 MessageComposerEvent.SetMode(composerMode)

@@ -9,7 +9,6 @@
 package io.element.android.libraries.textcomposer
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -73,6 +72,7 @@ internal fun ComposerModeView(
                 modifier = modifier.padding(top = 8.dp, start = 8.dp, end = 8.dp),
                 replyToDetails = composerMode.replyToDetails,
                 hideImage = composerMode.hideImage,
+                hideSender = composerMode.hideSender,
                 onResetComposerMode = onResetComposerMode,
             )
         }
@@ -136,6 +136,7 @@ private const val MAX_SCALING_VALUE = 3.5f
 private fun ReplyToModeView(
     replyToDetails: InReplyToDetails,
     hideImage: Boolean,
+    hideSender: Boolean,
     onResetComposerMode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -148,16 +149,11 @@ private fun ReplyToModeView(
     Box(
         modifier
             .clip(shape)
+            // MatriX: without border nor padding, so the green bar of the quote is its start edge
             .background(
                 color = if (contentHasErrors) ElementTheme.colors.bgCriticalSubtle else ElementTheme.colors.bgCanvasDefault,
                 shape = shape,
             )
-            .border(
-                width = 1.dp,
-                color = if (contentHasErrors) ElementTheme.colors.borderCriticalSubtle else ElementTheme.colors.separatorPrimary,
-                shape = shape,
-            )
-            .padding(4.dp)
     ) {
         // Larger density DPI and font scale means less space to display the content, so we limit it to 1 line to avoid overflow issues
         val currentDensity = LocalDensity.current
@@ -169,6 +165,7 @@ private fun ReplyToModeView(
             hideImage = hideImage,
             contentValidationValue = currentValidationState,
             maxLines = maxReplyContentLines,
+            hideSender = hideSender,
             modifier = Modifier.fillMaxWidth(),
         )
         Icon(
@@ -177,7 +174,7 @@ private fun ReplyToModeView(
             tint = if (contentHasErrors) ElementTheme.colors.iconCriticalPrimary else ElementTheme.colors.iconSecondary,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(end = 4.dp, top = 4.dp, start = 8.dp, bottom = 16.dp)
+                .padding(end = 8.dp, top = 8.dp, start = 8.dp, bottom = 16.dp)
                 .size(16.dp)
                 .clickable(
                     enabled = true,
