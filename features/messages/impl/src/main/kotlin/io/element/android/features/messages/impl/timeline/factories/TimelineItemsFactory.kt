@@ -22,6 +22,7 @@ import io.element.android.features.messages.impl.timeline.model.virtual.Timeline
 import io.element.android.libraries.androidutils.diff.DiffCacheUpdater
 import io.element.android.libraries.androidutils.diff.MutableListDiffCache
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
+import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.timeline.MatrixTimelineItem
 import io.element.android.libraries.matrix.api.timeline.item.event.EventTimelineItem
@@ -43,6 +44,7 @@ class TimelineItemsFactory(
     private val dispatchers: CoroutineDispatchers,
     private val virtualItemFactory: TimelineItemVirtualFactory,
     private val timelineItemGrouper: TimelineItemGrouper,
+    private val matrixClient: MatrixClient,
 ) {
     @AssistedFactory
     interface Creator {
@@ -86,7 +88,7 @@ class TimelineItemsFactory(
                 newTimelineItemStates.add(cacheItem)
             }
         }
-        val result = timelineItemGrouper.group(newTimelineItemStates).withReadMark().withFirstUnread().toImmutableList()
+        val result = timelineItemGrouper.group(newTimelineItemStates).withReadMark(matrixClient.sessionId).withFirstUnread().toImmutableList()
         this._timelineItems.emit(result)
     }
 
@@ -110,11 +112,11 @@ class TimelineItemsFactory(
 }
 
 /**
- * MatriX: puts the read mark on my latest message the others have read, that is the latest one at or before their read
- * receipts, which are often on their own later messages. It gets everyone who has read up to it or further.
+ * MatriX: puts the read mark on the latest message the others have read (mine or theirs), that is the latest one at or
+ * before their read receipts. It gets everyone but [me] who has read up to it or further.
  * The items are the newest first.
  */
-private fun List<TimelineItem>.withReadMark(): List<TimelineItem> {
+private fun List<TimelineItem>.withReadMark(me: UserId): List<TimelineItem> {
     val receipts = LinkedHashMap<UserId, ReadReceiptData>()
     forEachIndexed { index, item ->
         val events = when (item) {
@@ -123,8 +125,8 @@ private fun List<TimelineItem>.withReadMark(): List<TimelineItem> {
             is TimelineItem.Virtual -> emptyList()
         }
         events.forEach { event -> event.readReceiptState.receipts.forEach { receipts.putIfAbsent(it.userId, it) } }
-        if (item is TimelineItem.Event && item.isMine) {
-            val others = receipts.values.filter { it.userId != item.senderId }
+        if (item is TimelineItem.Event) {
+            val others = receipts.values.filter { it.userId != me }
             if (others.isNotEmpty()) {
                 return toMutableList().apply {
                     set(index, item.copy(isReadMark = true, readReceiptState = TimelineItemReadReceipts(others.toImmutableList())))

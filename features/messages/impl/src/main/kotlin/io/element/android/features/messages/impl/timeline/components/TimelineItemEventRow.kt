@@ -732,8 +732,9 @@ private fun TimelineItemEventRowContent(
             )
         }
 
-        // MatriX: a small picture of who has read up to my message, at the bottom of the end edge of the bubble, a quarter
-        // of it on the bubble (as in Google Chat); it takes no room, so nothing else moves
+        // MatriX: a small picture of who has read up to this message, at the bottom of the bubble on the end side of the
+        // screen: on my bubble a quarter of it on the bubble (as in Google Chat), and at the same place for a message of
+        // theirs; it takes no room, so nothing else moves
         val reader = event.readReceiptState.receipts.firstOrNull()
         if (timelineRoomInfo.renderReadReceipts && event.isReadMark && !event.failedToSend && reader != null) {
             ReadMarkAvatar(
@@ -741,9 +742,14 @@ private fun TimelineItemEventRowContent(
                 modifier = Modifier
                     .constrainAs(readMark) {
                         bottom.linkTo(message.bottom, margin = 2.dp)
-                        end.linkTo(message.end)
+                        if (event.isMine) {
+                            end.linkTo(message.end)
+                        } else {
+                            // where it is on my bubbles, which end 16 dp from the edge
+                            end.linkTo(parent.end, margin = 16.dp - READ_MARK_SIZE * 3 / 4)
+                        }
                     }
-                    .offset(x = READ_MARK_SIZE * 3 / 4)
+                    .offset(x = if (event.isMine) READ_MARK_SIZE * 3 / 4 else 0.dp)
                     .zIndex(1f),
             )
         }

@@ -10,6 +10,7 @@ package io.element.android.appnav
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.Lifecycle
+import androidx.test.platform.app.InstrumentationRegistry
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.node.node
@@ -128,6 +129,7 @@ class JoinedRoomLoadedFlowNodeTest : RobolectricTest() {
         appNavigationStateService = FakeAppNavigationStateService(),
         sessionCoroutineScope = backgroundScope,
         roomGraphFactory = FakeRoomGraphFactory(),
+        context = InstrumentationRegistry.getInstrumentation().targetContext,
         matrixClient = matrixClient,
         activeRoomsHolder = activeRoomsHolder,
         analyticsService = FakeAnalyticsService(),

@@ -9,6 +9,7 @@
 package io.element.android.appnav.room.joined
 
 import android.app.Activity
+import android.content.Context
 import android.net.Uri
 import android.os.Parcelable
 import androidx.activity.compose.LocalActivity
@@ -27,6 +28,7 @@ import dev.zacsweers.metro.AssistedInject
 import io.element.android.annotations.ContributesNode
 import io.element.android.appnav.di.RoomGraphFactory
 import io.element.android.appnav.di.TimelineBindings
+import io.element.android.appnav.loggedin.TypingProvider
 import io.element.android.appnav.room.RoomNavigationTarget
 import io.element.android.features.forward.api.ForwardEntryPoint
 import io.element.android.features.messages.api.MessagesEntryPoint
@@ -40,6 +42,7 @@ import io.element.android.libraries.architecture.inputs
 import io.element.android.libraries.architecture.waitForChildAttached
 import io.element.android.libraries.di.DependencyInjectionGraphOwner
 import io.element.android.libraries.di.SessionScope
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.EventId
@@ -74,6 +77,7 @@ class JoinedRoomLoadedFlowNode(
     private val activeRoomsHolder: ActiveRoomsHolder,
     private val analyticsService: AnalyticsService,
     roomGraphFactory: RoomGraphFactory,
+    @ApplicationContext private val context: Context,
 ) : BaseFlowNode<JoinedRoomLoadedFlowNode.NavTarget>(
     backstack = BackStack(
         initialElement = initialElement(plugins),
@@ -113,6 +117,10 @@ class JoinedRoomLoadedFlowNode(
                 sendMessageWatcher?.start()
                 fetchRoomMembers()
                 trackVisitedRoom()
+            },
+            // MatriX: the room is no longer seen (back, another app): Keyarchy shows it as the most recent chat
+            onStop = {
+                TypingProvider.setLeft(context, inputs.room.roomId.value, System.currentTimeMillis())
             },
             onResume = {
                 analyticsService.finishLongRunningTransaction(LoadJoinedRoomFlow)

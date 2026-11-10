@@ -107,6 +107,7 @@ internal fun TestScope.aTimelineItemsFactory(
             ),
         ),
         timelineItemGrouper = TimelineItemGrouper(),
+        matrixClient = matrixClient,
         config = config
     )
 }
