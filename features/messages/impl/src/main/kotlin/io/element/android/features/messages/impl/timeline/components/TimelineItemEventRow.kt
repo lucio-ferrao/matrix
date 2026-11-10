@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -135,6 +136,7 @@ import io.element.android.libraries.matrix.api.timeline.item.event.toMatrixUser
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.media.contentvalidation.collectOverallState
 import io.element.android.libraries.matrix.ui.media.contentvalidation.rememberEventContentValidationState
+import io.element.android.libraries.matrix.ui.messages.rememberRoomMember
 import io.element.android.libraries.matrix.ui.messages.reply.InReplyToDetails
 import io.element.android.libraries.matrix.ui.messages.reply.InReplyToView
 import io.element.android.libraries.matrix.ui.messages.reply.content
@@ -553,6 +555,7 @@ private fun TimelineItemEventRowContent(
             reactions,
             pinIcon,
             selectionIndicator,
+            readMark,
         ) = createRefs()
 
         if (selectionData.canBeSelected) {
@@ -700,7 +703,36 @@ private fun TimelineItemEventRowContent(
                     )
             )
         }
+
+        // MatriX: a small picture of who has read up to my message, at the bottom of the end edge of the bubble, a quarter
+        // of it on the bubble (as in Google Chat); it takes no room, so nothing else moves
+        val reader = event.readReceiptState.receipts.firstOrNull()
+        if (timelineRoomInfo.renderReadReceipts && event.isReadMark && !event.failedToSend && reader != null) {
+            ReadMarkAvatar(
+                userId = reader.userId,
+                modifier = Modifier
+                    .constrainAs(readMark) {
+                        bottom.linkTo(message.bottom, margin = 2.dp)
+                        end.linkTo(message.end)
+                    }
+                    .offset(x = READ_MARK_SIZE * 3 / 4)
+                    .zIndex(1f),
+            )
+        }
     }
+}
+
+private val READ_MARK_SIZE = AvatarSize.ReadMark.dp
+
+/** MatriX: the picture of [userId] in a small circle. */
+@Composable
+private fun ReadMarkAvatar(userId: UserId, modifier: Modifier = Modifier) {
+    val member = rememberRoomMember(userId)
+    Avatar(
+        avatarData = AvatarData(userId.value, member?.displayName, member?.avatarUrl, AvatarSize.ReadMark),
+        avatarType = AvatarType.User,
+        modifier = modifier.clip(CircleShape),
+    )
 }
 
 @Composable

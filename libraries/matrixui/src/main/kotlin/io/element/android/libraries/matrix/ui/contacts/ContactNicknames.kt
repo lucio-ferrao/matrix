@@ -31,10 +31,7 @@ class ContactNicknames(
 
     init {
         sessionCoroutineScope.launch {
-            client.getAccountData(EVENT_TYPE).getOrNull()?.let { content ->
-                val json = JSONObject(content)
-                nicknames.value = json.keys().asSequence().associate { UserId(it) to json.getString(it) }
-            }
+            client.getAccountData(EVENT_TYPE).getOrNull()?.let { nicknames.value = parse(it) }
         }
     }
 
@@ -56,7 +53,14 @@ class ContactNicknames(
         return client.setAccountData(EVENT_TYPE, content).onSuccess { nicknames.value = updated }
     }
 
-    private companion object {
+    companion object {
+        /** The type of the account data event with the names. */
         const val EVENT_TYPE = "org.ferrao.matrix.nicknames"
+
+        /** The names in the [content] of the account data event. */
+        fun parse(content: String): Map<UserId, String> {
+            val json = JSONObject(content)
+            return json.keys().asSequence().associate { UserId(it) to json.getString(it) }
+        }
     }
 }

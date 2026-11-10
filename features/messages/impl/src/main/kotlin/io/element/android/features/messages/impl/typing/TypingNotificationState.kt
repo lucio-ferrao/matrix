@@ -20,6 +20,6 @@ data class TypingNotificationState(
     val typingMembers: ImmutableList<TypingRoomMember>,
     /** Whether to reserve space for the typing notifications at the bottom of the timeline. */
     val reserveSpace: Boolean,
-    /** MatriX: in a room with one other person, their name, always shown where the typing notification is. */
+    /** MatriX: in a room with one other person, the name given to them, used when they type. */
     val dmMemberName: String? = null,
 )

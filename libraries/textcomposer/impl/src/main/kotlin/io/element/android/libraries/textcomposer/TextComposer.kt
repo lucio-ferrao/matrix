@@ -132,6 +132,8 @@ fun TextComposer(
     showTextFormatting: Boolean = false,
     isInThreadTimeline: Boolean = false,
     roomId: String? = null,
+    // MatriX: the picture of the room at the start, as in WhatsApp; the attachment button then goes inside the text box
+    roomAvatar: (@Composable () -> Unit)? = null,
 ) {
     val markdown = when (state) {
         is TextEditorState.Markdown -> state.state.text.value()
@@ -163,11 +165,30 @@ fun TextComposer(
     }
     val canSendTextMessage = markdown.isNotBlank() || composerMode is MessageComposerMode.Attachment
 
+    // MatriX: with the picture of the room at the start, the attachment button is at the end of the text box
+    val attachmentInTextBox = roomAvatar != null && composerMode !is MessageComposerMode.Attachment && composerMode !is MessageComposerMode.EditCaption
+    val attachmentButton: (@Composable () -> Unit)? = if (attachmentInTextBox) {
+        {
+            Icon(
+                modifier = Modifier
+                    .clickable(onClick = onAddAttachment)
+                    // centred in a text box of one line (42 dp, 4 dp of it above the row), at the bottom with more lines
+                    .padding(start = 4.dp, end = 8.dp, top = 3.dp, bottom = 9.dp)
+                    .size(24.dp),
+                imageVector = CompoundIcons.Attachment(),
+                contentDescription = stringResource(R.string.rich_text_editor_a11y_add_attachment),
+                tint = ElementTheme.colors.iconSecondary,
+            )
+        }
+    } else {
+        null
+    }
+
     val textInput: @Composable () -> Unit = when (state) {
         is TextEditorState.Rich -> {
             val coroutineScope = rememberCoroutineScope()
             val view = LocalView.current
-            remember(state.richTextEditorState, composerMode, onResetComposerMode, onError) {
+            remember(state.richTextEditorState, composerMode, onResetComposerMode, onError, attachmentInTextBox) {
                 @Composable {
                     TextInputBox(
                         modifier = Modifier
@@ -186,6 +207,7 @@ fun TextComposer(
                         composerMode = composerMode,
                         onResetComposerMode = onResetComposerMode,
                         isTextEmpty = state.richTextEditorState.messageHtml.isEmpty(),
+                        trailingAction = attachmentButton,
                     ) {
                         RichTextEditor(
                             state = state.richTextEditorState,
@@ -212,6 +234,7 @@ fun TextComposer(
                     composerMode = composerMode,
                     onResetComposerMode = onResetComposerMode,
                     isTextEmpty = state.state.text.value().isEmpty(),
+                    trailingAction = attachmentButton,
                 ) {
                     MarkdownTextInput(
                         roomId = roomId,
@@ -415,6 +438,7 @@ fun TextComposer(
             onDeleteVoiceMessage = onDeleteVoiceMessage,
             onVoiceRecorderEvent = onVoiceRecorderEvent,
             onResetComposerMode = onResetComposerMode,
+            roomAvatar = roomAvatar,
         )
     }
 
@@ -466,6 +490,7 @@ private fun StandardLayout(
     onVoiceRecorderEvent: (VoiceMessageRecorderEvent) -> Unit,
     onResetComposerMode: () -> Unit,
     modifier: Modifier = Modifier,
+    roomAvatar: (@Composable () -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         if (isRoomEncrypted == false) {
@@ -485,40 +510,54 @@ private fun StandardLayout(
                     // To avoid loosing keyboard focus, the IconButton has to be defined here and has to be always enabled.
                     // MatriX: the same room as the send button on the right (6 dp each side of a 48 dp button), so the text
                     // box is in the middle of the screen
-                    IconButton(
-                        modifier = Modifier
-                            .padding(top = 5.dp, bottom = 5.dp, start = 6.dp, end = 6.dp)
-                            .size(48.dp),
-                        onClick = {
+                    // MatriX: the picture of the room has the height of the text box (42 dp, 8 dp above and below), in the same
+                    // 60 dp as the button
+                    val showRoomAvatar = roomAvatar != null && voiceMessageState is VoiceMessageState.Idle
+                    if (showRoomAvatar) {
+                        // not a button: an IconButton would clip it to a circle, and it does nothing
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 8.dp, bottom = 8.dp, start = 9.dp, end = 9.dp)
+                                .size(42.dp),
+                        ) {
+                            roomAvatar?.invoke()
+                        }
+                    } else {
+                        IconButton(
+                            modifier = Modifier
+                                .padding(top = 5.dp, bottom = 5.dp, start = 6.dp, end = 6.dp)
+                                .size(48.dp),
+                            onClick = {
+                                if (voiceMessageState is VoiceMessageState.Idle) {
+                                    onAddAttachment()
+                                } else {
+                                    when (voiceMessageState) {
+                                        is VoiceMessageState.Preview -> if (!voiceMessageState.isSending) {
+                                            onDeleteVoiceMessage()
+                                        }
+                                        is VoiceMessageState.Recording ->
+                                            onVoiceRecorderEvent(VoiceMessageRecorderEvent.Cancel)
+                                    }
+                                }
+                            },
+                        ) {
                             if (voiceMessageState is VoiceMessageState.Idle) {
-                                onAddAttachment()
+                                // MatriX: a paperclip, as in WhatsApp, not a filled circle
+                                Icon(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .padding(3.dp),
+                                    imageVector = CompoundIcons.Attachment(),
+                                    contentDescription = stringResource(R.string.rich_text_editor_a11y_add_attachment),
+                                    tint = ElementTheme.colors.iconSecondary
+                                )
                             } else {
                                 when (voiceMessageState) {
-                                    is VoiceMessageState.Preview -> if (!voiceMessageState.isSending) {
-                                        onDeleteVoiceMessage()
-                                    }
+                                    is VoiceMessageState.Preview ->
+                                        VoiceMessageDeleteButtonIcon(enabled = !voiceMessageState.isSending)
                                     is VoiceMessageState.Recording ->
-                                        onVoiceRecorderEvent(VoiceMessageRecorderEvent.Cancel)
+                                        VoiceMessageDeleteButtonIcon(enabled = true)
                                 }
-                            }
-                        },
-                    ) {
-                        if (voiceMessageState is VoiceMessageState.Idle) {
-                            // MatriX: a paperclip, as in WhatsApp, not a filled circle
-                            Icon(
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .padding(3.dp),
-                                imageVector = CompoundIcons.Attachment(),
-                                contentDescription = stringResource(R.string.rich_text_editor_a11y_add_attachment),
-                                tint = ElementTheme.colors.iconSecondary
-                            )
-                        } else {
-                            when (voiceMessageState) {
-                                is VoiceMessageState.Preview ->
-                                    VoiceMessageDeleteButtonIcon(enabled = !voiceMessageState.isSending)
-                                is VoiceMessageState.Recording ->
-                                    VoiceMessageDeleteButtonIcon(enabled = true)
                             }
                         }
                     }
@@ -646,6 +685,8 @@ private fun TextInputBox(
     onResetComposerMode: () -> Unit,
     isTextEmpty: Boolean,
     modifier: Modifier = Modifier,
+    // MatriX: an action at the end of the text box, as the attachment button in WhatsApp
+    trailingAction: (@Composable () -> Unit)? = null,
     textInput: @Composable () -> Unit,
 ) {
     // MatriX: the colour of the messages of the other person and the corners of the messages, without a border
@@ -670,30 +711,34 @@ private fun TextInputBox(
             Spacer(Modifier.height(4.dp))
         }
 
-        Box(
-            modifier = Modifier
-                .padding(top = 1.dp, bottom = 4.dp, start = 12.dp, end = 12.dp)
-                .then(Modifier.testTag(TestTags.textEditor)),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            textInput()
-            if (isTextEmpty && composerMode.showCaptionCompatibilityWarning()) {
-                var showBottomSheet by remember { mutableStateOf(false) }
-                Icon(
-                    modifier = Modifier
-                        .clickable { showBottomSheet = true }
-                        .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
-                        .align(Alignment.CenterEnd),
-                    imageVector = CompoundIcons.InfoSolid(),
-                    tint = ElementTheme.colors.iconCriticalPrimary,
-                    contentDescription = stringResource(CommonStrings.a11y_info),
-                )
-                if (showBottomSheet) {
-                    CaptionWarningBottomSheet(
-                        onDismiss = { showBottomSheet = false },
+        Row(verticalAlignment = Alignment.Bottom) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = 1.dp, bottom = 4.dp, start = 12.dp, end = if (trailingAction != null) 0.dp else 12.dp)
+                    .then(Modifier.testTag(TestTags.textEditor)),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                textInput()
+                if (isTextEmpty && composerMode.showCaptionCompatibilityWarning()) {
+                    var showBottomSheet by remember { mutableStateOf(false) }
+                    Icon(
+                        modifier = Modifier
+                            .clickable { showBottomSheet = true }
+                            .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+                            .align(Alignment.CenterEnd),
+                        imageVector = CompoundIcons.InfoSolid(),
+                        tint = ElementTheme.colors.iconCriticalPrimary,
+                        contentDescription = stringResource(CommonStrings.a11y_info),
                     )
+                    if (showBottomSheet) {
+                        CaptionWarningBottomSheet(
+                            onDismiss = { showBottomSheet = false },
+                        )
+                    }
                 }
             }
+            trailingAction?.invoke()
         }
     }
 }

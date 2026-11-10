@@ -217,10 +217,7 @@ fun TimelineView(
                         .testTag(TestTags.timeline),
                     state = lazyListState,
                     reverseLayout = true,
-                    // MatriX: in a room with one other person their name is always at the bottom, centred between the last message
-                    // and the composer with less space below it (see TypingNotificationView)
-                    contentPadding = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues() +
-                        PaddingValues(top = 64.dp, bottom = if (state.timelineRoomInfo.isDm) 2.dp else 8.dp),
+                    contentPadding = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues() + PaddingValues(top = 64.dp, bottom = 8.dp),
                 ) {
                     items(
                         items = state.timelineItems,

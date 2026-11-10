@@ -39,8 +39,14 @@ enum class AvatarSize(val dp: Dp) {
     DmCluster(75.dp),
 
     TimelineRoom(32.dp),
+
+    // MatriX: the room at the start of the composer
+
+    ComposerRoom(42.dp),
     TimelineSender(32.dp),
     TimelineReadReceipt(16.dp),
+    // MatriX: who has read up to my message, on the edge of the bubble
+    ReadMark(14.dp),
     TimelineThreadLatestEventSender(24.dp),
 
     ComposerAlert(32.dp),

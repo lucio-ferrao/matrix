@@ -374,6 +374,7 @@ fun MessagesView(
             MessagesViewComposerBottomSheetContents(
                 state = state,
                 onLinkClick = { url, customTab -> onLinkClick(url, customTab) },
+                onRoomAvatarClick = { hidingKeyboard { onRoomDetailsClick() } },
                 onRoomSuccessorClick = { roomId ->
                     state.timelineState.eventSink(TimelineEvent.NavigateToPredecessorOrSuccessorRoom(roomId = roomId))
                 },
@@ -655,6 +656,7 @@ private fun MessagesViewComposerBottomSheetContents(
     state: MessagesState,
     onRoomSuccessorClick: (RoomId) -> Unit,
     onLinkClick: (String, Boolean) -> Unit,
+    onRoomAvatarClick: () -> Unit,
 ) {
     val contentPadding = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues()
     when {
@@ -691,6 +693,9 @@ private fun MessagesViewComposerBottomSheetContents(
                         state = state.composerState,
                         voiceMessageState = state.voiceMessageComposerState,
                         modifier = Modifier.fillMaxWidth(),
+                        roomAvatar = state.roomAvatar,
+                        roomHeroes = state.heroes,
+                        onRoomAvatarClick = onRoomAvatarClick,
                     )
                 }
             }

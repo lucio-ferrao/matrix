@@ -1067,7 +1067,7 @@ class DefaultNotifiableEventResolverTest : RobolectricTest() {
             if (notificationService == null) {
                 Result.failure(IllegalStateException("Client not found"))
             } else {
-                Result.success(FakeMatrixClient(notificationService = notificationService))
+                Result.success(FakeMatrixClient(notificationService = notificationService, getAccountDataLambda = { Result.success(null) }))
             }
         })
         val notificationMediaRepoFactory = NotificationMediaRepo.Factory {

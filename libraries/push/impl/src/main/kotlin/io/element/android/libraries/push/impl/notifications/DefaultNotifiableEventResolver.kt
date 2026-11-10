@@ -51,6 +51,7 @@ import io.element.android.libraries.matrix.api.timeline.item.event.StickerMessag
 import io.element.android.libraries.matrix.api.timeline.item.event.TextMessageType
 import io.element.android.libraries.matrix.api.timeline.item.event.VideoMessageType
 import io.element.android.libraries.matrix.api.timeline.item.event.VoiceMessageType
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.libraries.matrix.ui.messages.toPlainText
 import io.element.android.libraries.push.impl.R
 import io.element.android.libraries.push.impl.db.PushRequest
@@ -125,10 +126,18 @@ class DefaultNotifiableEventResolver(
             .minus(sessionId)
             .toSet()
 
+        // MatriX: in a room of two, the name given to the other person replaces their own
+        // (a failure to read them never stops the notification)
+        val nicknames = runCatchingExceptions {
+            client.getAccountData(ContactNicknames.EVENT_TYPE).getOrThrow()?.let(ContactNicknames::parse)
+        }.getOrNull().orEmpty()
+
         // The null check is done above
         val notificationDataMap = notificationsResult.getOrNull()!!.mapValues { (_, notificationData) ->
             notificationData.flatMap { data ->
-                data.asNotifiableEvent(client, sessionId, otherSessionUserIds)
+                val nickname = nicknames[data.content.senderIdOrNull()].takeIf { data.isDm }
+                val named = if (nickname != null) data.copy(roomDisplayName = nickname, senderDisplayName = nickname) else data
+                named.asNotifiableEvent(client, sessionId, otherSessionUserIds)
             }
         }
 

@@ -9,12 +9,14 @@
 package io.element.android.features.messages.impl.messagecomposer
 
 import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -23,12 +25,20 @@ import io.element.android.features.messages.api.timeline.voicemessages.composer.
 import io.element.android.features.messages.api.timeline.voicemessages.composer.VoiceMessageComposerStatePreviewParam
 import io.element.android.features.messages.api.timeline.voicemessages.composer.aVoiceMessageComposerState
 import io.element.android.libraries.designsystem.components.async.AsyncActionView
+import io.element.android.libraries.designsystem.components.avatar.Avatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarCornerShape
+import io.element.android.libraries.designsystem.components.avatar.AvatarData
+import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.textcomposer.TextComposer
 import io.element.android.libraries.textcomposer.model.Suggestion
 import io.element.android.libraries.textcomposer.model.VoiceMessagePlayerEvent
 import io.element.android.libraries.textcomposer.model.VoiceMessageRecorderEvent
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 
 @Composable
@@ -36,6 +46,11 @@ internal fun MessageComposerView(
     state: MessageComposerState,
     voiceMessageState: VoiceMessageComposerState,
     modifier: Modifier = Modifier,
+    // MatriX: the picture of the room, at the start of the composer
+    roomAvatar: AvatarData? = null,
+    roomHeroes: ImmutableList<AvatarData> = persistentListOf(),
+    // MatriX: opens the details of the room, with the picture in large (as the top bar)
+    onRoomAvatarClick: () -> Unit = {},
 ) {
     val view = LocalView.current
     fun sendMessage() {
@@ -118,6 +133,17 @@ internal fun MessageComposerView(
         onTyping = ::onTyping,
         onSelectRichContent = ::sendUri,
         roomId = state.roomId,
+        roomAvatar = roomAvatar?.let { avatarData ->
+            {
+                Avatar(
+                    modifier = Modifier
+                        .clip(AvatarCornerShape)
+                        .clickable(onClick = onRoomAvatarClick),
+                    avatarData = avatarData.copy(size = AvatarSize.ComposerRoom),
+                    avatarType = AvatarType.Room(heroes = roomHeroes.map { it.copy(size = AvatarSize.ComposerRoom) }.toImmutableList()),
+                )
+            }
+        },
     )
 
     AsyncActionView(
