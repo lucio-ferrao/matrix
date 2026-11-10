@@ -9,10 +9,8 @@
 package io.element.android.features.messages.impl.timeline.components
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,10 +44,8 @@ fun TimelineEventTimestampView(
     event: TimelineItem.Event,
     eventSink: (TimelineEvent.TimelineItemEvent) -> Unit,
     modifier: Modifier = Modifier,
-    isLayoutDirectionMismatched: Boolean = false,
     showReadMark: Boolean = false,
     onReadMarkClick: () -> Unit = {},
-    isOverImage: Boolean = false,
 ) {
     // as in wassup, the separator of my message's time says where it is: "." on its way, ":" at the server
     val formattedTime = if (event.localSendState is LocalEventSendState.Sending) event.sentTime.replace(':', '.') else event.sentTime
@@ -57,12 +53,7 @@ fun TimelineEventTimestampView(
     val hasEncryptionCritical = event.messageShield?.isCritical.orFalse()
     val isMessageEdited = event.content.isEdited()
     val isMessageRedacted = event.content.isRedacted()
-    val tint = when {
-        hasError || hasEncryptionCritical && !isMessageRedacted -> ElementTheme.colors.textCriticalPrimary
-        // MatriX: solid over an image, where its background is half transparent
-        isOverImage -> ElementTheme.colors.textPrimary
-        else -> ElementTheme.colors.textSecondary
-    }
+    val tint = if (hasError || hasEncryptionCritical && !isMessageRedacted) ElementTheme.colors.textCriticalPrimary else ElementTheme.colors.textSecondary
 
     val shield = event.messageShield
     val isVerifiedUserSendFailure = event.localSendState is LocalEventSendState.Failed.VerifiedUser
@@ -111,15 +102,9 @@ fun TimelineEventTimestampView(
         }
     }
 
-    val padding = if (!isLayoutDirectionMismatched) {
-        PaddingValues(start = TimelineEventTimestampViewDefaults.spacing)
-    } else {
-        PaddingValues(end = TimelineEventTimestampViewDefaults.spacing)
-    }
-
     Row(
+        // MatriX: below the bubble, not in it, so without the space it kept from the content
         modifier = Modifier
-            .padding(padding)
             // For a better click target, make the corners rounded
             .clip(shape)
             .then(clickableModifier)
@@ -173,8 +158,4 @@ internal fun TimelineEventTimestampViewPreview(@PreviewParameter(
         event = event,
         eventSink = {},
     )
-}
-
-object TimelineEventTimestampViewDefaults {
-    val spacing = 16.dp
 }

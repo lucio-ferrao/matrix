@@ -37,7 +37,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -62,10 +61,8 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -92,10 +89,10 @@ import io.element.android.features.messages.impl.timeline.model.event.TimelineIt
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStickerContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemTextContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemVideoContent
-import io.element.android.features.messages.impl.timeline.model.event.TimelineItemVoiceContent
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemImageContent
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemTextContent
 import io.element.android.features.messages.impl.timeline.model.event.ensureActiveLiveLocation
+import io.element.android.features.messages.impl.timeline.model.event.isEdited
 import io.element.android.features.messages.impl.timeline.protection.TimelineProtectionState
 import io.element.android.features.messages.impl.timeline.protection.mustBeProtected
 import io.element.android.features.messages.impl.utils.isSingleEmoji
@@ -124,6 +121,7 @@ import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.EmbeddedEventInfo
 import io.element.android.libraries.matrix.api.timeline.item.ThreadSummary
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
+import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageContent
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
 import io.element.android.libraries.matrix.api.timeline.item.event.ProfileDetails
@@ -145,12 +143,10 @@ import io.element.android.libraries.matrix.ui.messages.sender.SenderName
 import io.element.android.libraries.matrix.ui.messages.sender.SenderNameMode
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
-import io.element.android.libraries.ui.common.layout.ContentAvoidingLayout
 import io.element.android.libraries.ui.common.layout.ContentAvoidingLayoutData
 import io.element.android.libraries.ui.strings.CommonPlurals
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.libraries.ui.utils.a11y.isTalkbackActive
-import io.element.android.libraries.ui.utils.text.detect
 import io.element.android.wysiwyg.link.Link
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -556,6 +552,7 @@ private fun TimelineItemEventRowContent(
             pinIcon,
             selectionIndicator,
             readMark,
+            time,
         ) = createRefs()
 
         if (selectionData.canBeSelected) {
@@ -644,8 +641,6 @@ private fun TimelineItemEventRowContent(
         ) {
             MessageEventBubbleContent(
                 event = event,
-                showReadMark = timelineRoomInfo.renderReadReceipts,
-                onReadMarkClick = onReadReceiptClick,
                 hideReplySender = timelineRoomInfo.isDm,
                 timelineMode = timelineMode,
                 timelineProtectionState = timelineProtectionState,
@@ -701,6 +696,39 @@ private fun TimelineItemEventRowContent(
                         },
                         end = 16.dp
                     )
+            )
+        }
+
+        // MatriX: the time below the last message of a group, outside the bubble (below the reactions, if any), as in
+        // FluffyChat; also below a message with something to tell next to it (edited, failed, shield, being sent)
+        val showTime = event.groupPosition == TimelineItemGroupPosition.Last ||
+            event.groupPosition == TimelineItemGroupPosition.None ||
+            event.failedToSend ||
+            event.content.isEdited() ||
+            event.messageShield != null ||
+            event.localSendState is LocalEventSendState.Sending
+        if (showTime) {
+            val hasReactions = event.reactionsState.reactions.isNotEmpty()
+            TimelineEventTimestampView(
+                event = event,
+                showReadMark = timelineRoomInfo.renderReadReceipts,
+                onReadMarkClick = onReadReceiptClick,
+                eventSink = eventSink,
+                modifier = Modifier
+                    .constrainAs(time) {
+                        top.linkTo(if (hasReactions) reactions.bottom else message.bottom)
+                        linkStartOrEnd(event)
+                    }
+                    // Note: due to the applied constraints, start is left for other's message and right for mine
+                    .padding(
+                        start = when {
+                            event.isMine -> 20.dp
+                            timelineRoomInfo.isDm -> 20.dp
+                            else -> 20.dp + BUBBLE_INCOMING_OFFSET
+                        },
+                        end = 20.dp,
+                        top = 2.dp,
+                    ),
             )
         }
 
@@ -788,8 +816,6 @@ private fun MessageSenderInformation(
 @Composable
 private fun MessageEventBubbleContent(
     event: TimelineItem.Event,
-    showReadMark: Boolean,
-    onReadMarkClick: () -> Unit,
     // MatriX: in a room with one other person, quotes without the name of the sender
     hideReplySender: Boolean,
     timelineMode: Timeline.Mode,
@@ -831,93 +857,6 @@ private fun MessageEventBubbleContent(
         }
     }
 
-    @Composable
-    fun WithTimestampLayout(
-        timestampPosition: TimestampPosition,
-        eventSink: (TimelineEvent.TimelineItemEvent) -> Unit,
-        modifier: Modifier = Modifier,
-        canShrinkContent: Boolean = false,
-        content: @Composable (onContentLayoutChange: (ContentAvoidingLayoutData) -> Unit) -> Unit,
-    ) {
-        @Suppress("NAME_SHADOWING")
-        val content = remember { movableContentOf(content) }
-        when (timestampPosition) {
-            TimestampPosition.Overlay ->
-                Box(modifier, contentAlignment = Alignment.Center) {
-                    content {}
-                    TimelineEventTimestampView(
-                        event = event,
-                        showReadMark = showReadMark,
-                        onReadMarkClick = onReadMarkClick,
-                        eventSink = eventSink,
-                        isOverImage = true,
-                        modifier = Modifier
-                            // Outer padding
-                            .padding(horizontal = 4.dp, vertical = 4.dp)
-                            // MatriX: half transparent, to hide less of the image
-                            .background(ElementTheme.colors.bgSubtleSecondary.copy(alpha = 0.5f), RoundedCornerShape(10.0.dp))
-                            .align(Alignment.BottomEnd)
-                            // Inner padding, wider at the end for the read mark drawn after the time
-                            .padding(start = 4.dp, end = 8.dp, top = 2.dp, bottom = 2.dp)
-                    )
-                }
-            TimestampPosition.Aligned -> @Composable {
-                val originalLayoutDirection = LocalLayoutDirection.current
-                // Detect if the direction of the text content (if any) does not match the layout direction, to place the content and timestamp correctly
-                val contentDirection = if (event.content is TimelineItemTextContent) {
-                    remember(event.content.body) {
-                        when (TextDirection.detect(event.content.body)) {
-                            TextDirection.Ltr, TextDirection.ContentOrLtr -> LayoutDirection.Ltr
-                            TextDirection.Rtl, TextDirection.ContentOrRtl -> LayoutDirection.Rtl
-                            else -> originalLayoutDirection
-                        }
-                    }
-                } else {
-                    originalLayoutDirection
-                }
-
-                CompositionLocalProvider(LocalLayoutDirection provides contentDirection) {
-                    ContentAvoidingLayout(
-                        modifier = modifier,
-                        // The spacing is negative to make the content overlap the empty space at the start of the timestamp
-                        spacing = (-4).dp,
-                        overlayOffset = DpOffset(0.dp, -1.dp),
-                        shrinkContent = canShrinkContent,
-                        content = { content(this::onContentLayoutChange) },
-                        overlay = {
-                            // Use the original layout direction for the timestamp
-                            CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDirection) {
-                                TimelineEventTimestampView(
-                                    event = event,
-                                    showReadMark = showReadMark,
-                                    onReadMarkClick = onReadMarkClick,
-                                    eventSink = eventSink,
-                                    isLayoutDirectionMismatched = originalLayoutDirection != contentDirection,
-                                    modifier = Modifier
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    )
-                }
-            }
-            TimestampPosition.Below ->
-                Column(modifier) {
-                    content {}
-                    TimelineEventTimestampView(
-                        event = event,
-                        showReadMark = showReadMark,
-                        onReadMarkClick = onReadMarkClick,
-                        eventSink = eventSink,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            TimestampPosition.Hidden -> Box(modifier) { content {} }
-        }
-    }
-
     /** Groups the different components in a Column with some space between them. */
     @Composable
     fun CommonLayout(
@@ -926,7 +865,6 @@ private fun MessageEventBubbleContent(
         paddingBehaviour: ContentPadding,
         inReplyToDetails: InReplyToDetails?,
         modifier: Modifier = Modifier,
-        canShrinkContent: Boolean = false,
     ) {
         val timestampLayoutModifier =
             if (inReplyToDetails != null && timestampPosition == TimestampPosition.Overlay) {
@@ -956,19 +894,16 @@ private fun MessageEventBubbleContent(
                 ThreadDecoration(modifier = Modifier.padding(top = 8.dp, start = 12.dp, end = 12.dp))
             }
         }
+        // MatriX: the time is below the bubble (TimelineItemEventRowContent), not in it
         val contentWithTimestamp = @Composable {
-            WithTimestampLayout(
-                timestampPosition = timestampPosition,
-                eventSink = eventSink,
-                canShrinkContent = canShrinkContent,
+            Box(
                 modifier = timestampLayoutModifier.semantics(mergeDescendants = false) {
                     isTraversalGroup = true
                     traversalIndex = -1f
                 },
-                content = { onContentLayoutChange ->
-                    eventContentView(contentModifier, onContentLayoutChange)
-                }
-            )
+            ) {
+                eventContentView(contentModifier) {}
+            }
         }
 
         val inReplyTo = @Composable { inReplyTo: InReplyToDetails ->
@@ -1076,7 +1011,6 @@ private fun MessageEventBubbleContent(
         timestampPosition = timestampPosition,
         paddingBehaviour = paddingBehaviour,
         inReplyToDetails = event.inReplyTo,
-        canShrinkContent = event.content is TimelineItemVoiceContent,
         modifier = bubbleModifier,
     )
 }
