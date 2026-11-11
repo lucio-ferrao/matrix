@@ -726,7 +726,7 @@ class RootFlowNode(
                 ).maybeAttachThread(permalinkData.threadId, permalinkData.eventId)
             }
             is PermalinkData.UserLink -> {
-                attachUser(permalinkData.userId)
+                if (permalinkData.openChat) attachDirectChat(permalinkData.userId) else attachUser(permalinkData.userId)
             }
         }
     }

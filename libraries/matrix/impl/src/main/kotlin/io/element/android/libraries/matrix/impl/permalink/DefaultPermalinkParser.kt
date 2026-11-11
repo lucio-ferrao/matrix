@@ -53,8 +53,10 @@ class DefaultPermalinkParser(
             matrixToConverter.convert(uri) ?: return PermalinkData.FallbackLink(uri)
         }
 
+        // MatriX: read by hand, as a matrix: URI is opaque (no query for Uri) and a matrix.to link has it in the fragment
+        val openChat = uriString.substringAfter('?', "").split('&').contains("action=chat")
         matrixToUri.userIdWithSlash()?.let { userId ->
-            return PermalinkData.UserLink(userId = userId)
+            return PermalinkData.UserLink(userId = userId, openChat = openChat)
         }
 
         val result = runCatchingExceptions {
@@ -67,6 +69,7 @@ class DefaultPermalinkParser(
             when (val id = result.id) {
                 is MatrixId.User -> PermalinkData.UserLink(
                     userId = UserId(id.id),
+                    openChat = openChat,
                 )
                 is MatrixId.Room -> PermalinkData.RoomLink(
                     roomIdOrAlias = RoomId(id.id).toRoomIdOrAlias(),

@@ -630,6 +630,16 @@ class LoggedInFlowNode(
         }
     }
 
+    /** MatriX: the room of two with [userId], if there is one, else their profile (to start one). */
+    suspend fun attachDirectChat(userId: UserId) {
+        val roomId = matrixClient.findDM(userId).getOrNull()
+        if (roomId != null) {
+            attachRoom(roomId.toRoomIdOrAlias(), clearBackstack = true)
+        } else {
+            attachUser(userId)
+        }
+    }
+
     suspend fun attachUser(userId: UserId) {
         waitForNavTargetAttached { navTarget ->
             navTarget is NavTarget.Home

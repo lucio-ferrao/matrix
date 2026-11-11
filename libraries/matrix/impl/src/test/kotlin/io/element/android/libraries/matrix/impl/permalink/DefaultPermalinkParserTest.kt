@@ -38,6 +38,12 @@ class DefaultPermalinkParserTest : RobolectricTest() {
         assertThat(result).isInstanceOf(PermalinkData.FallbackLink::class.java)
     }
 
+    @Test
+    fun `a link to a user asking for the chat is a user link that opens the chat`() {
+        val result = createParser().parse("https://matrix.to/#/@it/sme:matrix.org?action=chat")
+        assertThat(result).isEqualTo(PermalinkData.UserLink(UserId("@it/sme:matrix.org"), openChat = true))
+    }
+
     private fun createParser() = DefaultPermalinkParser(
         matrixToConverter = DefaultMatrixToConverter(),
     )

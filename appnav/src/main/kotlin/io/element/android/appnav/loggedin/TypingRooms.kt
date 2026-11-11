@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 /**
  * MatriX: whether someone is typing in a room with a conversation shortcut, for the Keyarchy launcher, which animates
@@ -40,6 +41,7 @@ class TypingRooms(
 
     /** watches the rooms that have a shortcut now; called when the session shows again, as they change little */
     fun start() {
+        sessionCoroutineScope.launch { publishDirectRooms() }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return
         job?.cancel()
         job = sessionCoroutineScope.launch {
@@ -49,6 +51,21 @@ class TypingRooms(
                 launch { watch(RoomId(id.removePrefix(prefix))) }
             }
         }
+    }
+
+    /**
+     * The room of two with each person, for a Keyarchy contact that has only a Matrix id: from the rooms of two of the
+     * account (m.direct), the first one I am in.
+     */
+    private suspend fun publishDirectRooms() {
+        val content = matrixClient.getAccountData("m.direct").getOrNull() ?: return
+        val joined = matrixClient.getJoinedRoomIds().getOrNull() ?: return
+        val json = JSONObject(content)
+        val rooms = json.keys().asSequence().mapNotNull { user ->
+            val ids = json.getJSONArray(user)
+            (0 until ids.length()).map { ids.getString(it) }.firstOrNull { RoomId(it) in joined }?.let { user to it }
+        }.toMap()
+        TypingProvider.setDirect(context, rooms)
     }
 
     private suspend fun watch(roomId: RoomId) {

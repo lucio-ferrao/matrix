@@ -52,7 +52,11 @@ sealed interface PermalinkData : Parcelable {
         val roomType: String?
     ) : PermalinkData
 
-    data class UserLink(val userId: UserId) : PermalinkData
+    /**
+     * @param openChat MatriX: the link asks for the chat with the user (`?action=chat`, MSC2312), so the room of two with
+     * them is opened when there is one, rather than their profile.
+     */
+    data class UserLink(val userId: UserId, val openChat: Boolean = false) : PermalinkData
 
     data class FallbackLink(val uri: Uri, val isLegacyGroupLink: Boolean = false) : PermalinkData
 }
