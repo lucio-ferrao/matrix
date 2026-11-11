@@ -91,7 +91,6 @@ class KonsistPreviewTest {
         "BackgroundVerticalGradientPreview",
         "ColorAliasesPreview",
         "EmojiItemWithPopupPreview",
-        "FocusedEventPreview",
         "GradientFloatingActionButtonCircleShapePreview",
         "HeaderFooterPageScrollablePreview",
         "HomeTopBarMultiAccountPreview",

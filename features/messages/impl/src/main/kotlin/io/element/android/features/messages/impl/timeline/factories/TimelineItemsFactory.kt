@@ -18,7 +18,6 @@ import io.element.android.features.messages.impl.timeline.groups.TimelineItemGro
 import io.element.android.features.messages.impl.timeline.model.ReadReceiptData
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.TimelineItemReadReceipts
-import io.element.android.features.messages.impl.timeline.model.virtual.TimelineItemReadMarkerModel
 import io.element.android.libraries.androidutils.diff.DiffCacheUpdater
 import io.element.android.libraries.androidutils.diff.MutableListDiffCache
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
@@ -88,7 +87,7 @@ class TimelineItemsFactory(
                 newTimelineItemStates.add(cacheItem)
             }
         }
-        val result = timelineItemGrouper.group(newTimelineItemStates).withReadMark(matrixClient.sessionId).withFirstUnread().toImmutableList()
+        val result = timelineItemGrouper.group(newTimelineItemStates).withReadMark(matrixClient.sessionId).toImmutableList()
         this._timelineItems.emit(result)
     }
 
@@ -135,16 +134,6 @@ private fun List<TimelineItem>.withReadMark(me: UserId): List<TimelineItem> {
         }
     }
     return this
-}
-
-/**
- * MatriX: flags the message just after the read marker, which gets the green background, as the marker shows nothing.
- * The items are the newest first, so it is the one before the marker.
- */
-private fun List<TimelineItem>.withFirstUnread(): List<TimelineItem> {
-    val marker = indexOfFirst { it is TimelineItem.Virtual && it.model == TimelineItemReadMarkerModel }
-    val event = getOrNull(marker - 1) as? TimelineItem.Event ?: return this
-    return toMutableList().apply { set(marker - 1, event.copy(isFirstUnread = true)) }
 }
 
 internal fun EventTimelineItem.isKeyVerificationRequest(): Boolean {

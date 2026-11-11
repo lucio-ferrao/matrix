@@ -12,15 +12,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -29,9 +22,7 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import io.element.android.compound.theme.ElementTheme
 import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.TimelineRoomInfo
 import io.element.android.features.messages.impl.timeline.components.event.TimelineItemEventContentView
@@ -44,11 +35,7 @@ import io.element.android.features.messages.impl.timeline.model.event.TimelineIt
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStateContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemVoiceContent
 import io.element.android.features.messages.impl.timeline.protection.TimelineProtectionState
-import io.element.android.libraries.designsystem.colors.gradientSubtleColors
 import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
-import io.element.android.libraries.designsystem.preview.ElementPreview
-import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.text.toPx
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.user.MatrixUser
@@ -100,23 +87,9 @@ internal fun TimelineItemRow(
 ) {
     val isSelectionModeActive = selectionData.isSelectionModeActive
     val isSelected = selectionData.isSelected
-    val backgroundModifier = when {
-        // MatriX: the green background marks the first unread message (not the event the timeline was opened on)
-        (timelineItem as? TimelineItem.Event)?.isFirstUnread == true && !isSelectionModeActive -> {
-            val focusedEventOffset =
-                if ((timelineItem as? TimelineItem.Event)?.showSenderInformation == true) {
-                    14.dp
-                } else {
-                    2.dp
-                }
-            Modifier.focusedEvent(focusedEventOffset)
-        }
-        else -> {
-            Modifier
-        }
-    }
     val selectableEvent = (timelineItem as? TimelineItem.Event)?.takeIf { selectionData.canBeSelected }
-    Box(modifier = modifier.then(backgroundModifier)) {
+    // MatriX: no green background, neither on the event the timeline was opened on nor on the first unread one
+    Box(modifier = modifier) {
         TimelineItemRowContent(
             modifier = Modifier.fillMaxWidth(),
             selectionData = selectionData,
@@ -316,45 +289,4 @@ private fun TimelineItemRowContent(
             }
         }
     }
-}
-
-@Suppress("ModifierComposable")
-@Composable
-private fun Modifier.focusedEvent(
-    focusedEventOffset: Dp,
-): Modifier {
-    val highlightedLineColor = ElementTheme.colors.borderAccentSubtle
-    val gradientColors = gradientSubtleColors()
-    val verticalOffset = focusedEventOffset.toPx()
-    val verticalRatio = 0.7f
-    return drawWithCache {
-        val brush = Brush.verticalGradient(
-            colors = gradientColors,
-            endY = size.height * verticalRatio,
-        )
-        onDrawBehind {
-            drawRect(
-                brush,
-                topLeft = Offset(0f, verticalOffset),
-                size = Size(size.width, size.height * verticalRatio)
-            )
-            drawLine(
-                highlightedLineColor,
-                start = Offset(0f, verticalOffset),
-                end = Offset(size.width, verticalOffset)
-            )
-        }
-    }.padding(top = 4.dp)
-}
-
-@PreviewsDayNight
-@Composable
-internal fun FocusedEventPreview() = ElementPreview {
-    Box(
-        modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth()
-            .height(160.dp)
-            .focusedEvent(0.dp),
-    )
 }

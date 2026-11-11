@@ -156,8 +156,8 @@ private fun TimelineItemGroupedEventsRowContent(
         GroupHeaderView(
             text = headerText,
             isExpanded = isExpanded,
-            // MatriX: the first unread message inside, as in TimelineItemRow
-            isHighlighted = !isExpanded && timelineItem.events.any { it.isFirstUnread },
+            // MatriX: nothing is highlighted in the timeline (see TimelineItemRow)
+            isHighlighted = false,
             onClick = onExpandGroupClick,
         )
         if (isExpanded) {
