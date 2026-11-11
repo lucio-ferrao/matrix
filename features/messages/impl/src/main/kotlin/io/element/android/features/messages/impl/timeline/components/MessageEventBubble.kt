@@ -137,7 +137,9 @@ fun MessageEventBubble(
             modifier = Modifier
                 .testTag(TestTags.messageBubble)
                 .widthIn(
-                    min = MIN_BUBBLE_WIDTH,
+                    // MatriX: a bubble without background (a single emoji) is as wide as its content, so it keeps to the
+                    // side of the other bubbles instead of sitting at the start of an invisible minimum width
+                    min = if (customBackgroundColor == Color.Transparent) 0.dp else MIN_BUBBLE_WIDTH,
                     max = (constraints.maxWidth * MessageEventBubbleDefaults.BUBBLE_WIDTH_RATIO)
                         .toInt()
                         .toDp()
