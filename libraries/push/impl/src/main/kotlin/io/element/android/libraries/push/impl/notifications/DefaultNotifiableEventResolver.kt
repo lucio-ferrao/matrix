@@ -61,6 +61,7 @@ import io.element.android.libraries.push.impl.notifications.model.ResolvedPushEv
 import io.element.android.libraries.sessionstorage.api.SessionStore
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.services.toolbox.api.strings.StringProvider
+import org.json.JSONObject
 import timber.log.Timber
 
 private val loggerTag = LoggerTag("DefaultNotifiableEventResolver", LoggerTag.NotificationLoggerTag)
@@ -131,15 +132,27 @@ class DefaultNotifiableEventResolver(
         val nicknames = runCatchingExceptions {
             client.getAccountData(ContactNicknames.EVENT_TYPE).getOrThrow()?.let(ContactNicknames::parse)
         }.getOrNull().orEmpty()
+        // the rooms of two of the account (m.direct: user id to room ids), as the notifications don't always know a
+        // room is one
+        val directRooms = runCatchingExceptions {
+            client.getAccountData("m.direct").getOrThrow()?.let { content ->
+                val json = JSONObject(content)
+                json.keys().asSequence().associateWith { user ->
+                    json.getJSONArray(user).let { rooms -> (0 until rooms.length()).map(rooms::getString) }
+                }
+            }
+        }.getOrNull().orEmpty()
 
         // The null check is done above
         val notificationDataMap = notificationsResult.getOrNull()!!.mapValues { (_, notificationData) ->
             notificationData.flatMap { data ->
                 // the sender with the name given to them; in a room of two, the room too
-                val nickname = nicknames[data.content.senderIdOrNull()]
+                val sender = data.content.senderIdOrNull()
+                val nickname = nicknames[sender]
+                val isDm = data.isDm || directRooms[sender?.value].orEmpty().contains(data.roomId.value)
                 val named = when {
-                    nickname == null -> data
-                    data.isDm -> data.copy(roomDisplayName = nickname, senderDisplayName = nickname)
+                    nickname == null -> data.copy(isDm = isDm)
+                    isDm -> data.copy(roomDisplayName = nickname, senderDisplayName = nickname, isDm = true)
                     else -> data.copy(senderDisplayName = nickname)
                 }
                 named.asNotifiableEvent(client, sessionId, otherSessionUserIds)

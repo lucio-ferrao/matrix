@@ -37,6 +37,7 @@ import io.element.android.libraries.matrix.test.AN_EVENT_ID_2
 import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.A_REDACTION_REASON
 import io.element.android.libraries.matrix.test.A_ROOM_ID
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.libraries.matrix.test.A_ROOM_NAME
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.A_SESSION_ID_2
@@ -139,6 +140,32 @@ class DefaultNotifiableEventResolverTest : RobolectricTest() {
         val result = sut.resolveEvents(A_SESSION_ID, listOf(request))
         val expectedResult = ResolvedPushEvent.Event(
             aNotifiableMessageEvent(body = "Hello world", hasMentionOrReply = true)
+        )
+        assertThat(result.getEvent(request)).isEqualTo(Result.success(expectedResult))
+    }
+
+    @Test
+    fun `resolve event message in a room of two of m direct, with the name given to the sender`() = runTest {
+        val sut = createDefaultNotifiableEventResolver(
+            notificationResult = Result.success(
+                mapOf(
+                    AN_EVENT_ID to Result.success(aNotificationData(
+                        content = NotificationContent.MessageLike.RoomMessage(
+                            senderId = A_USER_ID_2,
+                            messageType = TextMessageType(body = "Hello world", formatted = null)
+                        ),
+                    ))
+                )
+            ),
+            accountData = mapOf(
+                ContactNicknames.EVENT_TYPE to """{"${A_USER_ID_2.value}":"Bobby"}""",
+                "m.direct" to """{"${A_USER_ID_2.value}":["${A_ROOM_ID.value}"]}""",
+            ),
+        )
+        val request = aPushRequest(A_SESSION_ID, A_ROOM_ID, AN_EVENT_ID, "firebase")
+        val result = sut.resolveEvents(A_SESSION_ID, listOf(request))
+        val expectedResult = ResolvedPushEvent.Event(
+            aNotifiableMessageEvent(body = "Hello world", senderDisambiguatedDisplayName = "Bobby", roomName = "Bobby").copy(roomIsDm = true)
         )
         assertThat(result.getEvent(request)).isEqualTo(Result.success(expectedResult))
     }
@@ -1060,6 +1087,7 @@ class DefaultNotifiableEventResolverTest : RobolectricTest() {
         notificationResult: Result<Map<EventId, Result<NotificationData>>> = Result.success(emptyMap()),
         callNotificationEventResolver: FakeCallNotificationEventResolver = FakeCallNotificationEventResolver(),
         sessionStore: SessionStore = InMemorySessionStore(),
+        accountData: Map<String, String> = emptyMap(),
     ): DefaultNotifiableEventResolver {
         val context = RuntimeEnvironment.getApplication() as Context
         notificationService?.givenGetNotificationsResult(notificationResult)
@@ -1067,7 +1095,7 @@ class DefaultNotifiableEventResolverTest : RobolectricTest() {
             if (notificationService == null) {
                 Result.failure(IllegalStateException("Client not found"))
             } else {
-                Result.success(FakeMatrixClient(notificationService = notificationService, getAccountDataLambda = { Result.success(null) }))
+                Result.success(FakeMatrixClient(notificationService = notificationService, getAccountDataLambda = { Result.success(accountData[it]) }))
             }
         })
         val notificationMediaRepoFactory = NotificationMediaRepo.Factory {
