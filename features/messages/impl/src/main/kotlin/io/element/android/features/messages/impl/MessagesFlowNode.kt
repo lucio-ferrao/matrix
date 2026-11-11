@@ -102,6 +102,7 @@ import io.element.android.libraries.matrix.api.room.alias.matches
 import io.element.android.libraries.matrix.api.roomlist.RoomListService
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.TimelineItemDebugInfo
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.libraries.matrix.ui.messages.LocalRoomMemberProfilesCache
 import io.element.android.libraries.matrix.ui.messages.RoomMemberProfilesCache
 import io.element.android.libraries.matrix.ui.messages.RoomNamesCache
@@ -119,6 +120,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
@@ -150,6 +152,7 @@ class MessagesFlowNode(
     private val dateFormatter: DateFormatter,
     private val coroutineDispatchers: CoroutineDispatchers,
     private val localMediaFactory: LocalMediaFactory,
+    private val contactNicknames: ContactNicknames,
     private val hasVulkanSupport: DeviceHasVulkanSupport,
 ) : BaseFlowNode<MessagesFlowNode.NavTarget>(
     backstack = BackStack(
@@ -243,10 +246,11 @@ class MessagesFlowNode(
     }
 
     private fun setupCacheUpdaters() {
-        room.membersStateFlow
+        // MatriX: with the names given to the members, if any (mentions, who has read)
+        combine(room.membersStateFlow, contactNicknames.all) { membersState, _ -> membersState }
             .onEach { membersState ->
                 withContext(coroutineDispatchers.computation) {
-                    roomMemberProfilesCache.replace(membersState.activeRoomMembers())
+                    roomMemberProfilesCache.replace(membersState.activeRoomMembers().map(contactNicknames::memberOf))
                 }
             }
             .launchIn(lifecycleScope)

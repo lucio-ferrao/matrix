@@ -126,7 +126,7 @@ class DefaultNotifiableEventResolver(
             .minus(sessionId)
             .toSet()
 
-        // MatriX: in a room of two, the name given to the other person replaces their own
+        // MatriX: the names given to people replace their own
         // (a failure to read them never stops the notification)
         val nicknames = runCatchingExceptions {
             client.getAccountData(ContactNicknames.EVENT_TYPE).getOrThrow()?.let(ContactNicknames::parse)
@@ -135,8 +135,13 @@ class DefaultNotifiableEventResolver(
         // The null check is done above
         val notificationDataMap = notificationsResult.getOrNull()!!.mapValues { (_, notificationData) ->
             notificationData.flatMap { data ->
-                val nickname = nicknames[data.content.senderIdOrNull()].takeIf { data.isDm }
-                val named = if (nickname != null) data.copy(roomDisplayName = nickname, senderDisplayName = nickname) else data
+                // the sender with the name given to them; in a room of two, the room too
+                val nickname = nicknames[data.content.senderIdOrNull()]
+                val named = when {
+                    nickname == null -> data
+                    data.isDm -> data.copy(roomDisplayName = nickname, senderDisplayName = nickname)
+                    else -> data.copy(senderDisplayName = nickname)
+                }
                 named.asNotifiableEvent(client, sessionId, otherSessionUserIds)
             }
         }

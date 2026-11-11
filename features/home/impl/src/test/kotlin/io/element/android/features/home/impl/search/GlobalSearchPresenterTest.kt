@@ -41,6 +41,7 @@ import io.element.android.libraries.matrix.test.roomlist.FakeRoomListService
 import io.element.android.libraries.matrix.test.search.FakeMessageSearch
 import io.element.android.libraries.matrix.test.search.FakeMessageSearchService
 import io.element.android.libraries.matrix.test.search.FakeSearchBackfillService
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.tests.testutils.consumeItemsUntilPredicate
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.test
@@ -501,6 +502,8 @@ private fun TestScope.createGlobalSearchPresenter(
                     roomListService = roomListService,
                     coroutineDispatchers = testCoroutineDispatchers(),
                     roomSummaryFactory = aRoomListRoomSummaryFactory(),
+                    contactNicknames = ContactNicknames(FakeMatrixClient(getAccountDataLambda = { Result.success(null) }), coroutineScope),
+                    matrixClient = FakeMatrixClient(),
                 )
             }
         },

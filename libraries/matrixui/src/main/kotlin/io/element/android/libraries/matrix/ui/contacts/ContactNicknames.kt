@@ -7,7 +7,10 @@ import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.room.BaseRoom
+import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.getDirectRoomMember
+import io.element.android.libraries.matrix.api.timeline.item.event.ProfileDetails
+import java.text.Normalizer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +52,28 @@ class ContactNicknames(
         otherMember?.let { names[it.userId] } ?: info.name
     }.distinctUntilChanged()
 
+    /** The [profile] of [userId] with the name given to them, if any (the same object otherwise). */
+    fun profileOf(userId: UserId, profile: ProfileDetails): ProfileDetails {
+        val nickname = nicknames.value[userId] ?: return profile
+        return when (profile) {
+            is ProfileDetails.Ready -> profile.copy(displayName = nickname, displayNameAmbiguous = false)
+            else -> ProfileDetails.Ready(displayName = nickname, displayNameAmbiguous = false, avatarUrl = null, displayedStatus = null)
+        }
+    }
+
+    /** The [member] with the name given to them, if any (the same object otherwise). */
+    fun memberOf(member: RoomMember): RoomMember =
+        nicknames.value[member.userId]?.let { member.copy(displayName = it, isNameAmbiguous = false) } ?: member
+
+    /** The users whose given name contains [query], ignoring case and accents. */
+    fun usersMatching(query: String): List<UserId> {
+        val wanted = query.normalized()
+        if (wanted.isBlank()) return emptyList()
+        return nicknames.value.filterValues { it.normalized().contains(wanted) }.keys.toList()
+    }
+
+    private fun String.normalized() = Normalizer.normalize(trim(), Normalizer.Form.NFD).replace(DIACRITICS, "").lowercase()
+
     /** Gives [nickname] to [userId], or removes their name when it is blank. */
     suspend fun setNickname(userId: UserId, nickname: String?): Result<Unit> {
         val updated = nicknames.value.toMutableMap().apply {
@@ -59,6 +84,8 @@ class ContactNicknames(
     }
 
     companion object {
+        private val DIACRITICS = Regex("\\p{Mn}+")
+
         /** The type of the account data event with the names. */
         const val EVENT_TYPE = "org.ferrao.matrix.nicknames"
 

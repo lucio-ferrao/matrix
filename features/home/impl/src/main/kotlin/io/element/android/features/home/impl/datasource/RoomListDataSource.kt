@@ -18,7 +18,6 @@ import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.core.RoomId
-import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.notificationsettings.NotificationSettingsService
 import io.element.android.libraries.matrix.api.roomlist.RoomList
 import io.element.android.libraries.matrix.api.roomlist.RoomListFilter
@@ -85,14 +84,7 @@ class RoomListDataSource(
 
     // MatriX: a room of two has the name given to the other person, if any
     val roomSummariesFlow: Flow<ImmutableList<RoomListRoomSummary>> = combine(_roomSummariesFlow, contactNicknames.all) { summaries, nicknames ->
-        if (nicknames.isEmpty()) {
-            summaries
-        } else {
-            summaries.map { summary ->
-                val nickname = summary.heroes.singleOrNull()?.let { nicknames[UserId(it.id)] }.takeIf { summary.isDm }
-                if (nickname != null) summary.copy(name = nickname) else summary
-            }.toImmutableList()
-        }
+        if (nicknames.isEmpty()) summaries else summaries.map { it.withNickname(nicknames) }.toImmutableList()
     }
 
     val loadingState = roomList.loadingState

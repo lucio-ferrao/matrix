@@ -14,9 +14,11 @@ import io.element.android.libraries.dateformatter.test.FakeDateFormatter
 import io.element.android.libraries.eventformatter.test.FakeRoomLatestEventFormatter
 import io.element.android.libraries.matrix.api.roomlist.RoomListFilter
 import io.element.android.libraries.matrix.api.roomlist.RoomListService
+import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.room.aRoomSummary
 import io.element.android.libraries.matrix.test.roomlist.FakeDynamicRoomList
 import io.element.android.libraries.matrix.test.roomlist.FakeRoomListService
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.tests.testutils.lambda.assert
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.test
@@ -156,6 +158,8 @@ fun TestScope.createRoomListSearchPresenter(
                     ),
                     coroutineDispatchers = testCoroutineDispatchers(),
                     coroutineScope = coroutineScope,
+                    contactNicknames = ContactNicknames(FakeMatrixClient(getAccountDataLambda = { Result.success(null) }), coroutineScope),
+                    matrixClient = FakeMatrixClient(),
                 )
             }
         }

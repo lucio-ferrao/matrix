@@ -27,6 +27,8 @@ import io.element.android.libraries.matrix.api.timeline.MatrixTimelineItem
 import io.element.android.libraries.matrix.api.timeline.item.event.EventTimelineItem
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageContent
 import io.element.android.libraries.matrix.api.timeline.item.event.OtherMessageType
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
+import io.element.android.libraries.matrix.ui.messages.reply.InReplyToDetails
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +46,7 @@ class TimelineItemsFactory(
     private val virtualItemFactory: TimelineItemVirtualFactory,
     private val timelineItemGrouper: TimelineItemGrouper,
     private val matrixClient: MatrixClient,
+    private val contactNicknames: ContactNicknames,
 ) {
     @AssistedFactory
     interface Creator {
@@ -87,7 +90,7 @@ class TimelineItemsFactory(
                 newTimelineItemStates.add(cacheItem)
             }
         }
-        val result = timelineItemGrouper.group(newTimelineItemStates).withReadMark(matrixClient.sessionId).toImmutableList()
+        val result = timelineItemGrouper.group(newTimelineItemStates).withReadMark(matrixClient.sessionId).withNicknames(contactNicknames).toImmutableList()
         this._timelineItems.emit(result)
     }
 
@@ -134,6 +137,27 @@ private fun List<TimelineItem>.withReadMark(me: UserId): List<TimelineItem> {
         }
     }
     return this
+}
+
+/** MatriX: the senders, and the senders of the quoted messages, with the names given to them, if any. */
+private fun List<TimelineItem>.withNicknames(nicknames: ContactNicknames): List<TimelineItem> = map { item ->
+    when (item) {
+        is TimelineItem.Event -> item.withNickname(nicknames)
+        is TimelineItem.GroupedEvents -> item.copy(events = item.events.map { it.withNickname(nicknames) }.toImmutableList())
+        is TimelineItem.Virtual -> item
+    }
+}
+
+private fun TimelineItem.Event.withNickname(nicknames: ContactNicknames): TimelineItem.Event {
+    val profile = nicknames.profileOf(senderId, senderProfile)
+    val reply = inReplyTo
+    val namedReply = if (reply is InReplyToDetails.Ready) {
+        val replyProfile = nicknames.profileOf(reply.senderId, reply.senderProfile)
+        if (replyProfile === reply.senderProfile) reply else reply.copy(senderProfile = replyProfile)
+    } else {
+        reply
+    }
+    return if (profile === senderProfile && namedReply === reply) this else copy(senderProfile = profile, inReplyTo = namedReply)
 }
 
 internal fun EventTimelineItem.isKeyVerificationRequest(): Boolean {

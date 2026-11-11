@@ -32,8 +32,10 @@ import io.element.android.libraries.matrix.api.permalink.PermalinkData
 import io.element.android.libraries.matrix.test.AN_EVENT_ID
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.A_USER_ID
+import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.room.FakeBaseRoom
 import io.element.android.libraries.matrix.test.roomlist.FakeRoomListService
+import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.libraries.matrix.ui.messages.RoomMemberProfilesCache
 import io.element.android.libraries.matrix.ui.messages.RoomNamesCache
 import io.element.android.libraries.mediaviewer.test.FakeLocalMediaFactory
@@ -89,6 +91,7 @@ class DefaultMessagesEntryPointTest {
                 dateFormatter = FakeDateFormatter(),
                 coroutineDispatchers = testCoroutineDispatchers(),
                 localMediaFactory = FakeLocalMediaFactory(mockk("localMediaUri")),
+                contactNicknames = ContactNicknames(FakeMatrixClient(getAccountDataLambda = { Result.success(null) }), backgroundScope),
                 hasVulkanSupport = DeviceHasVulkanSupport(mockk(relaxed = true))
             )
         }

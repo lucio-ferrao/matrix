@@ -79,6 +79,7 @@ class TypingNotificationPresenter(
                 .map { userId ->
                     membersState.roomMembers()
                         ?.firstOrNull { roomMember -> roomMember.userId == userId }
+                        ?.let(contactNicknames::memberOf)
                         ?.toTypingRoomMember()
                         ?: createDefaultRoomMemberForTyping(userId)
                 }
