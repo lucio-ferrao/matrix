@@ -43,9 +43,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -256,12 +254,10 @@ fun TimelineItemEventRow(
             .fillMaxWidth()
             .semantics { customActions = accessibilityActions }
     ) {
-        // MatriX: the read marker is a thin line in the middle of the space above the first unread message
-        val spacerModifier = if (event.isFirstUnread) Modifier.fillMaxWidth().drawUnreadLine() else Modifier
         if (event.groupPosition.isNew()) {
-            Spacer(modifier = spacerModifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         } else {
-            Spacer(modifier = spacerModifier.height(2.dp))
+            Spacer(modifier = Modifier.height(2.dp))
         }
         if (canReply) {
             val state: SwipeableActionsState = rememberSwipeableActionsState()
@@ -355,16 +351,6 @@ fun TimelineItemEventRow(
             )
         }
 
-    }
-}
-
-@Composable
-private fun Modifier.drawUnreadLine(): Modifier {
-    val color = ElementTheme.colors.textActionAccent
-    return drawBehind {
-        val y = size.height / 2
-        val margin = 16.dp.toPx()
-        drawLine(color, start = Offset(margin, y), end = Offset(size.width - margin, y), strokeWidth = 1.dp.toPx())
     }
 }
 

@@ -253,7 +253,6 @@ private fun PinnedMessagesListLoaded(
                 timelineRoomInfo = state.timelineRoomInfo,
                 timelineProtectionState = state.timelineProtectionState,
                 isLastOutgoingMessage = false,
-                focusedEventId = null,
                 onUserDataClick = onUserDataClick,
                 onLinkClick = { link ->
                     state.linkState.eventSink(LinkEvent.OnLinkClick(link))

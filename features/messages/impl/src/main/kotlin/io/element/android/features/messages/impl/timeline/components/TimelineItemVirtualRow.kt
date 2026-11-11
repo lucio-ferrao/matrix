@@ -40,7 +40,7 @@ fun TimelineItemVirtualRow(
     Box(modifier = modifier) {
         when (virtual.model) {
             is TimelineItemDaySeparatorModel -> TimelineItemDaySeparatorView(virtual.model)
-            // MatriX: no space for the read marker; the first unread message draws a thin line above it
+            // MatriX: no space for the read marker; the first unread message gets the green background
             TimelineItemReadMarkerModel -> Unit
             TimelineItemRoomBeginningModel -> {
                 TimelineItemRoomBeginningView(

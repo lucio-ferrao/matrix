@@ -65,7 +65,6 @@ internal fun TimelineItemRow(
     timelineRoomInfo: TimelineRoomInfo,
     isLastOutgoingMessage: Boolean,
     timelineProtectionState: TimelineProtectionState,
-    focusedEventId: EventId?,
     displayThreadSummaries: Boolean,
     selectionData: TimelineItemSelectionData,
     onUserDataClick: (MatrixUser) -> Unit,
@@ -102,7 +101,8 @@ internal fun TimelineItemRow(
     val isSelectionModeActive = selectionData.isSelectionModeActive
     val isSelected = selectionData.isSelected
     val backgroundModifier = when {
-        timelineItem.isEvent(focusedEventId) && !isSelectionModeActive -> {
+        // MatriX: the green background marks the first unread message (not the event the timeline was opened on)
+        (timelineItem as? TimelineItem.Event)?.isFirstUnread == true && !isSelectionModeActive -> {
             val focusedEventOffset =
                 if ((timelineItem as? TimelineItem.Event)?.showSenderInformation == true) {
                     14.dp
@@ -125,7 +125,6 @@ internal fun TimelineItemRow(
             timelineRoomInfo = timelineRoomInfo,
             timelineProtectionState = timelineProtectionState,
             isLastOutgoingMessage = isLastOutgoingMessage,
-            focusedEventId = focusedEventId,
             displayThreadSummaries = displayThreadSummaries,
             onUserDataClick = onUserDataClick,
             onLinkClick = onLinkClick,
@@ -169,7 +168,6 @@ private fun TimelineItemRowContent(
     timelineRoomInfo: TimelineRoomInfo,
     isLastOutgoingMessage: Boolean,
     timelineProtectionState: TimelineProtectionState,
-    focusedEventId: EventId?,
     displayThreadSummaries: Boolean,
     onUserDataClick: (MatrixUser) -> Unit,
     onLinkClick: (Link) -> Unit,
@@ -303,7 +301,6 @@ private fun TimelineItemRowContent(
                     timelineRoomInfo = timelineRoomInfo,
                     timelineProtectionState = timelineProtectionState,
                     isLastOutgoingMessage = isLastOutgoingMessage,
-                    focusedEventId = focusedEventId,
                     displayThreadSummaries = displayThreadSummaries,
                     onClick = onContentClick,
                     onLongClick = onLongClick,

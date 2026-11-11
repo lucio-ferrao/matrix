@@ -230,7 +230,6 @@ fun TimelineView(
                             timelineRoomInfo = state.timelineRoomInfo,
                             timelineProtectionState = timelineProtectionState,
                             isLastOutgoingMessage = state.isLastOutgoingMessage(timelineItem.identifier()),
-                            focusedEventId = state.focusedEventId,
                             displayThreadSummaries = state.displayThreadSummaries,
                             selectionData = TimelineItemSelectionData(
                                 isSelectionModeActive = isSelectionModeActive,

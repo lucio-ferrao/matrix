@@ -138,7 +138,7 @@ private fun List<TimelineItem>.withReadMark(me: UserId): List<TimelineItem> {
 }
 
 /**
- * MatriX: flags the message just after the read marker, which draws a thin line above it, as the marker takes no space.
+ * MatriX: flags the message just after the read marker, which gets the green background, as the marker shows nothing.
  * The items are the newest first, so it is the one before the marker.
  */
 private fun List<TimelineItem>.withFirstUnread(): List<TimelineItem> {

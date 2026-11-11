@@ -110,7 +110,7 @@ sealed interface TimelineItem {
         val forwarderProfile: ProfileDetails?,
         // MatriX: my latest message the others have read, with them in readReceiptState
         val isReadMark: Boolean = false,
-        // MatriX: the first message after the read marker, with a thin line above it instead of the marker
+        // MatriX: the first message after the read marker, with the green background instead of the marker
         val isFirstUnread: Boolean = false,
     ) : TimelineItem {
         val showSenderInformation = groupPosition.isNew() && !isMine
