@@ -9,6 +9,8 @@ package io.element.android.features.migration.impl
 
 import com.google.common.truth.Truth.assertThat
 import io.element.android.features.migration.impl.migrations.AppMigration
+import io.element.android.features.migration.impl.migrations.SessionsCacheRelocation
+import io.element.android.libraries.sessionstorage.test.InMemorySessionStore
 import io.element.android.tests.testutils.lambda.LambdaOneParamRecorder
 import io.element.android.tests.testutils.lambda.lambdaError
 import io.element.android.tests.testutils.lambda.lambdaRecorder
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.io.File
 
 class DefaultAppMigrationRunnerTest {
     @Test
@@ -81,6 +84,8 @@ class DefaultAppMigrationRunnerTest {
         migrationStore = migrationStore,
         migrations = migrations,
         coroutineDispatchers = testCoroutineDispatchers(),
+        // The same old and new directories: nothing to move
+        sessionsCacheRelocation = SessionsCacheRelocation(InMemorySessionStore(), File("cache"), File("cache", "sessions")),
     )
 }
 

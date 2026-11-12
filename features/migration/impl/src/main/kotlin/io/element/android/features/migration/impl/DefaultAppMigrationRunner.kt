@@ -12,6 +12,7 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.SingleIn
 import io.element.android.features.migration.api.AppMigrationRunner
 import io.element.android.features.migration.impl.migrations.AppMigration
+import io.element.android.features.migration.impl.migrations.SessionsCacheRelocation
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -25,6 +26,7 @@ class DefaultAppMigrationRunner(
     private val migrationStore: MigrationStore,
     migrations: Set<@JvmSuppressWildcards AppMigration>,
     private val coroutineDispatchers: CoroutineDispatchers,
+    private val sessionsCacheRelocation: SessionsCacheRelocation,
 ) : AppMigrationRunner {
     private val orderedMigrations = migrations.sortedBy { it.order }
     private val lastMigration: Int = orderedMigrations.lastOrNull()?.order ?: 0
@@ -60,6 +62,9 @@ class DefaultAppMigrationRunner(
                         }
                         migrationStore.setApplicationMigrationVersion(migration.order)
                     }
+            }
+            withContext(coroutineDispatchers.io) {
+                sessionsCacheRelocation.run()
             }
             isDone = true
         }

@@ -54,8 +54,9 @@ object AppBindingContainer {
 
     @Provides
     @SessionsCacheDirectory
-    fun providesSessionsCacheDirectory(@CacheDirectory cacheDirectory: File): File {
-        return File(cacheDirectory, "sessions")
+    fun providesSessionsCacheDirectory(@ApplicationContext context: Context): File {
+        // MatriX: not in the cache directory, where Android can delete the SDK databases while they are open.
+        return File(context.filesDir, "sessions-cache")
     }
 
     @Provides
