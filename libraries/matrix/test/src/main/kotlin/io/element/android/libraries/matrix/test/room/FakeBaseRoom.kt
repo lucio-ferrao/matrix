@@ -42,6 +42,7 @@ class FakeBaseRoom(
     initialRoomInfo: RoomInfo = aRoomInfo(),
     private val roomPermissions: RoomPermissions = FakeRoomPermissions(),
     override val roomCoroutineScope: CoroutineScope = TestScope(),
+    override val roomTypingMembersFlow: Flow<List<UserId>> = MutableStateFlow(emptyList()),
     private var roomPermalinkResult: () -> Result<String> = { lambdaError() },
     private var eventPermalinkResult: (EventId) -> Result<String> = { lambdaError() },
     private val userDisplayNameResult: (UserId) -> Result<String?> = { lambdaError() },

@@ -82,7 +82,6 @@ import org.matrix.rustcomponents.sdk.SendQueueListener
 import org.matrix.rustcomponents.sdk.TimelineConfiguration
 import org.matrix.rustcomponents.sdk.TimelineFilter
 import org.matrix.rustcomponents.sdk.TimelineFocus
-import org.matrix.rustcomponents.sdk.TypingNotificationsListener
 import org.matrix.rustcomponents.sdk.UserPowerLevelUpdate
 import org.matrix.rustcomponents.sdk.WidgetCapabilities
 import org.matrix.rustcomponents.sdk.WidgetCapabilitiesProvider
@@ -109,20 +108,6 @@ class JoinedRustRoom(
     // Create a dispatcher for all room methods...
     private val roomDispatcher = coroutineDispatchers.io.limitedParallelism(32)
     private val innerRoom = baseRoom.innerRoom
-
-    override val roomTypingMembersFlow: Flow<List<UserId>> = mxCallbackFlow {
-        val initial = emptyList<UserId>()
-        channel.trySend(initial)
-        innerRoom.subscribeToTypingNotifications(object : TypingNotificationsListener {
-            override fun call(typingUserIds: List<String>) {
-                channel.trySend(
-                    typingUserIds
-                        .filter { it != sessionId.value }
-                        .map(::UserId)
-                )
-            }
-        })
-    }
 
     override val identityStateChangesFlow: Flow<List<IdentityStateChange>> = mxCallbackFlow {
         val initial = emptyList<IdentityStateChange>()

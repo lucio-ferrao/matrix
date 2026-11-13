@@ -40,9 +40,6 @@ interface JoinedRoom : BaseRoom {
      */
     val syncUpdateFlow: StateFlow<Long>
 
-    /** The members currently typing in the room, never including the current user; starts as an empty list. */
-    val roomTypingMembersFlow: Flow<List<UserId>>
-
     /** Emits when the verification state of other members' identities changes, for instance after a member resets their identity. */
     val identityStateChangesFlow: Flow<List<IdentityStateChange>>
 

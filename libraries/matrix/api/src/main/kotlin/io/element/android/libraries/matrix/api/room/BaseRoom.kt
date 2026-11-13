@@ -56,6 +56,9 @@ interface BaseRoom : Closeable {
      */
     val roomInfoFlow: StateFlow<RoomInfo>
 
+    /** The members currently typing in the room, never including the current user; starts as an empty list. */
+    val roomTypingMembersFlow: Flow<List<UserId>>
+
     /**
      * Get the latest room info we have received from the SDK stream.
      */

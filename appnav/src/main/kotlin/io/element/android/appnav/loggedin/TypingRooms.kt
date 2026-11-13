@@ -16,6 +16,7 @@ import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -37,19 +38,22 @@ class TypingRooms(
     private val matrixClient: MatrixClient,
     @SessionCoroutineScope private val sessionCoroutineScope: CoroutineScope,
 ) {
-    private var job: Job? = null
+    private val watched = mutableMapOf<RoomId, Job>()
 
-    /** watches the rooms that have a shortcut now; called when the session shows again, as they change little */
+    /**
+     * Watches the rooms that have a shortcut now; called when the session shows again, as they change little. A room
+     * already watched is left as it is, so coming back to the app does not open its rooms again.
+     */
     fun start() {
         sessionCoroutineScope.launch { publishDirectRooms() }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return
-        job?.cancel()
-        job = sessionCoroutineScope.launch {
+        sessionCoroutineScope.launch(Dispatchers.Main) {
             val manager = context.getSystemService(ShortcutManager::class.java) ?: return@launch
             val prefix = "${matrixClient.sessionId.value}-"
-            manager.dynamicShortcuts.map { it.id }.filter { it.startsWith(prefix) }.forEach { id ->
-                launch { watch(RoomId(id.removePrefix(prefix))) }
-            }
+            val roomIds = manager.dynamicShortcuts.map { it.id }.filter { it.startsWith(prefix) }.map { RoomId(it.removePrefix(prefix)) }.toSet()
+            watched.values.removeAll { !it.isActive }
+            (watched.keys - roomIds).forEach { watched.remove(it)?.cancel() }
+            (roomIds - watched.keys).forEach { roomId -> watched[roomId] = sessionCoroutineScope.launch { watch(roomId) } }
         }
     }
 
@@ -68,8 +72,9 @@ class TypingRooms(
         TypingProvider.setDirect(context, rooms)
     }
 
+    /** by the room without its timeline: a timeline kept open holds the whole conversation in memory */
     private suspend fun watch(roomId: RoomId) {
-        val room = matrixClient.getJoinedRoom(roomId) ?: return
+        val room = matrixClient.getRoom(roomId) ?: return
         try {
             room.roomTypingMembersFlow.map { it.isNotEmpty() }.distinctUntilChanged().collectLatest { typing ->
                 if (!typing) return@collectLatest TypingProvider.set(context, roomId.value, 0L)

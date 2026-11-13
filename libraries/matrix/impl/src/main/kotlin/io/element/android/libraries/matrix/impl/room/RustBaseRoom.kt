@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
 import org.matrix.rustcomponents.sdk.CallDeclineListener
+import org.matrix.rustcomponents.sdk.TypingNotificationsListener
 import org.matrix.rustcomponents.sdk.use
 import timber.log.Timber
 import uniffi.matrix_sdk_base.EncryptionState
@@ -76,6 +77,20 @@ class RustBaseRoom(
     override val membersStateFlow: StateFlow<RoomMembersState> = roomMemberListFetcher.membersFlow
 
     override val roomCoroutineScope = sessionCoroutineScope.childScope(coroutineDispatchers.main, "RoomScope-$roomId")
+
+    override val roomTypingMembersFlow: Flow<List<UserId>> = mxCallbackFlow {
+        val initial = emptyList<UserId>()
+        channel.trySend(initial)
+        innerRoom.subscribeToTypingNotifications(object : TypingNotificationsListener {
+            override fun call(typingUserIds: List<String>) {
+                channel.trySend(
+                    typingUserIds
+                        .filter { it != sessionId.value }
+                        .map(::UserId)
+                )
+            }
+        })
+    }
 
     override val roomInfoFlow: StateFlow<RoomInfo> = innerRoom.roomInfoUpdates(coroutineDispatchers)
         .map { roomInfoMapper.map(it) }
