@@ -36,15 +36,22 @@ import kotlin.coroutines.resume
 
 /**
  * Max width of thumbnail images.
+ * MatriX: 1280 instead of the 800 of the Matrix spec, and the same max height, so that a portrait photo is not enlarged
+ * in the 360 dp of the timeline.
  * See [the Matrix spec](https://spec.matrix.org/latest/client-server-api/?ref=blog.gitter.im#thumbnails).
  */
-private const val THUMB_MAX_WIDTH = 800
+private const val THUMB_MAX_WIDTH = 1280
 
 /**
  * Max height of thumbnail images.
  * See [the Matrix spec](https://spec.matrix.org/latest/client-server-api/?ref=blog.gitter.im#thumbnails).
  */
-private const val THUMB_MAX_HEIGHT = 600
+private const val THUMB_MAX_HEIGHT = 1280
+
+/**
+ * MatriX: quality of the thumbnails, 78 made them grainy.
+ */
+private const val THUMB_QUALITY = 85
 
 /**
  * Frame of the video to be used for generating a thumbnail.
@@ -66,11 +73,12 @@ class ThumbnailFactory(
                 // This API works correctly with GIF
                 if (sdkIntProvider.isAtLeast(Build.VERSION_CODES.Q)) {
                     try {
+                        // MatriX: it only decodes with an integer sample size, the result can be up to twice the max size
                         ThumbnailUtils.createImageThumbnail(
                             file,
                             Size(THUMB_MAX_WIDTH, THUMB_MAX_HEIGHT),
                             cancellationSignal
-                        )
+                        ).resizeToMax(THUMB_MAX_WIDTH, THUMB_MAX_HEIGHT)
                     } catch (ioException: IOException) {
                         Timber.w(ioException, "Failed to create thumbnail for $file")
                         null
@@ -119,7 +127,7 @@ class ThumbnailFactory(
         val extension = mimeTypeToCompressFileExtension(mimeType)
         val thumbnailFile = context.createTmpFile(extension = extension)
         thumbnailFile.outputStream().use { outputStream ->
-            bitmapThumbnail.compress(format, 78, outputStream)
+            bitmapThumbnail.compress(format, THUMB_QUALITY, outputStream)
         }
         val blurhash = BlurHash.encode(bitmapThumbnail, 3, 3)
         val thumbnailResult = ThumbnailResult(
