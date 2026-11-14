@@ -109,6 +109,7 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.preview.USER_NAME_ALICE
 import io.element.android.libraries.designsystem.swipe.SwipeableActionsState
 import io.element.android.libraries.designsystem.swipe.rememberSwipeableActionsState
+import io.element.android.libraries.designsystem.text.toDp
 import io.element.android.libraries.designsystem.text.toPx
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Text
@@ -660,6 +661,8 @@ private fun TimelineItemEventRowContent(
 
         // Reactions
         if (event.reactionsState.reactions.isNotEmpty()) {
+            // MatriX: 25 % of the emoji inside the bubble; the emoji starts after 6 dp of transparent padding in the button
+            val reactionsOverlap = 6.dp + REACTION_EMOJI_LINE_HEIGHT.toDp() * 0.25f
             TimelineItemReactionsView(
                 reactionsState = event.reactionsState,
                 userCanSendReaction = timelineRoomInfo.userHasPermissionToSendReaction,
@@ -668,7 +671,7 @@ private fun TimelineItemEventRowContent(
                 onReactionLongClick = onReactionLongClick,
                 modifier = Modifier
                     .constrainAs(reactions) {
-                        top.linkTo(message.bottom, margin = (-4).dp)
+                        top.linkTo(message.bottom, margin = -reactionsOverlap)
                         linkStartOrEnd(event)
                     }
                     .zIndex(1f)
