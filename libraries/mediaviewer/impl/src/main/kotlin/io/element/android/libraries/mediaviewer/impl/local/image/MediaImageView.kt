@@ -43,6 +43,7 @@ fun MediaImageView(
     } else {
         val zoomableImageState = rememberZoomableImageState(localMediaViewState.zoomableState)
         localMediaViewState.isReady = zoomableImageState.isImageDisplayed
+        localMediaViewState.isShownInFullQuality = zoomableImageState.isImageDisplayedInFullQuality
         val imageDescription = if (forPreview) {
             stringResource(CommonStrings.a11y_photo_preview)
         } else {

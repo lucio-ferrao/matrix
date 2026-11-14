@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
@@ -28,9 +29,11 @@ import io.element.android.libraries.mediaupload.api.MaxUploadSizeProvider
 import io.element.android.libraries.mediaupload.api.MediaOptimizationConfigProvider
 import io.element.android.libraries.mediaupload.api.compressorHelper
 import io.element.android.libraries.mediaviewer.api.local.LocalMedia
+import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.math.roundToLong
 
@@ -43,6 +46,7 @@ class DefaultMediaOptimizationSelectorPresenter(
     private val featureFlagService: FeatureFlagService,
     private val mediaOptimizationConfigProvider: MediaOptimizationConfigProvider,
     private val videoCompressionPresetSelector: VideoCompressionPresetSelector,
+    private val sessionPreferencesStore: SessionPreferencesStore,
     mediaExtractorFactory: VideoMetadataExtractor.Factory,
 ) : MediaOptimizationSelectorPresenter {
     @ContributesBinding(SessionScope::class)
@@ -59,10 +63,14 @@ class DefaultMediaOptimizationSelectorPresenter(
 
     @Composable
     override fun present(): MediaOptimizationSelectorState {
+        val coroutineScope = rememberCoroutineScope()
+        val mediaMimeType = localMedia.info.mimeType
+
         val displayMediaSelectorViews by produceState<Boolean?>(null) {
             // When sending as a raw file, never show the optimization selector: images skip
             // recompression, while videos use the highest available best-fit preset.
-            value = !sendAsFile && featureFlagService.isFeatureEnabled(FeatureFlags.SelectableMediaQuality)
+            // MatriX: the image compression switch is always shown, only the video one depends on the flag
+            value = !sendAsFile && (!mediaMimeType.isMimeTypeVideo() || featureFlagService.isFeatureEnabled(FeatureFlags.SelectableMediaQuality))
         }
 
         var displayVideoPresetSelectorDialog by remember { mutableStateOf(false) }
@@ -76,8 +84,6 @@ class DefaultMediaOptimizationSelectorPresenter(
                 }
             )
         }
-
-        val mediaMimeType = localMedia.info.mimeType
 
         val videoSizeEstimations by produceState<AsyncData<ImmutableList<VideoUploadEstimation>>>(
             initialValue = AsyncData.Loading(),
@@ -155,6 +161,8 @@ class DefaultMediaOptimizationSelectorPresenter(
             when (event) {
                 is MediaOptimizationSelectorEvent.SelectImageOptimization -> {
                     selectedImageOptimization = AsyncData.Success(event.enabled)
+                    // MatriX: the choice is kept for the next attachments
+                    coroutineScope.launch { sessionPreferencesStore.setOptimizeImages(event.enabled) }
                 }
                 is MediaOptimizationSelectorEvent.SelectVideoPreset -> {
                     val estimations = videoSizeEstimations.dataOrNull()

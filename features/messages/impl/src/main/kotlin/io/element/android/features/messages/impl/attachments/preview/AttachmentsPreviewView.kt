@@ -8,6 +8,7 @@
 
 package io.element.android.features.messages.impl.attachments.preview
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -31,6 +32,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -74,6 +77,7 @@ import io.element.android.libraries.designsystem.theme.components.Switch
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
 import io.element.android.libraries.designsystem.theme.floatingDateBadgeBackground
+import io.element.android.libraries.mediaviewer.api.local.LocalMedia
 import io.element.android.libraries.mediaviewer.api.local.LocalMediaRenderer
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import io.element.android.libraries.textcomposer.TextComposer
@@ -275,6 +279,7 @@ private fun AttachmentPreviewContent(
             .fillMaxSize()
             .navigationBarsPadding(),
     ) {
+        val preparedVersions = rememberPreparedVersions(state)
         Box(
             modifier = Modifier
                 .weight(1f),
@@ -301,7 +306,7 @@ private fun AttachmentPreviewContent(
                         val attachment = state.attachments[page]
                         when (attachment) {
                             is Attachment.Media -> {
-                                localMediaRenderer.Render(attachment.localMedia)
+                                localMediaRenderer.Render(attachment.previewMedia(preparedVersions[page]))
                             }
                         }
                     }
@@ -340,14 +345,18 @@ private fun AttachmentPreviewContent(
                 val firstAttachment = state.attachments.first()
                 when (firstAttachment) {
                     is Attachment.Media -> {
-                        localMediaRenderer.Render(firstAttachment.localMedia)
+                        localMediaRenderer.Render(firstAttachment.previewMedia(preparedVersions[0]))
                     }
                 }
             }
         }
         val mediaInfo = (state.attachments[state.currentIndex] as? Attachment.Media)?.localMedia?.info
         if (mediaInfo?.isImageAttachment() == true) {
-            ImageOptimizationSelector(state.mediaOptimizationSelectorState)
+            // MatriX: size of the file prepared with the current compression choice, null while it is being prepared
+            val uploadSize = remember(state.sendActionState, state.currentIndex) {
+                (state.sendActionState as? SendActionState.Sending.ReadyToUpload)?.mediaInfos?.getOrNull(state.currentIndex)?.file?.length()
+            }
+            ImageOptimizationSelector(state.mediaOptimizationSelectorState, uploadSize)
         } else if (mediaInfo?.mimeType?.isMimeTypeVideo() == true) {
             VideoPresetSelector(state = state.mediaOptimizationSelectorState)
         }
@@ -377,8 +386,45 @@ private fun AttachmentPreviewContent(
     }
 }
 
+/**
+ * MatriX: the last prepared version of an attachment, which stays on screen while the next one is being prepared.
+ * Every version is written to the same file, so its uri carries a version number for the image to be loaded again.
+ */
+private class PreparedVersion(val sourceUri: Uri, val uri: Uri)
+
 @Composable
-private fun ImageOptimizationSelector(state: MediaOptimizationSelectorState) {
+private fun rememberPreparedVersions(state: AttachmentsPreviewState): Map<Int, PreparedVersion> {
+    val versions = remember { mutableStateMapOf<Int, PreparedVersion>() }
+    var versionNumber by remember { mutableIntStateOf(0) }
+    val mediaUploadInfos = state.sendActionState.mediaUploadInfoList()
+    LaunchedEffect(mediaUploadInfos) {
+        if (mediaUploadInfos.isNullOrEmpty()) return@LaunchedEffect
+        versionNumber++
+        mediaUploadInfos.forEachIndexed { index, mediaUploadInfo ->
+            val attachment = state.attachments.getOrNull(index) as? Attachment.Media ?: return@forEachIndexed
+            versions[index] = PreparedVersion(
+                sourceUri = attachment.localMedia.uri,
+                uri = Uri.fromFile(mediaUploadInfo.file).buildUpon().appendQueryParameter("v", versionNumber.toString()).build(),
+            )
+        }
+    }
+    return versions
+}
+
+/**
+ * MatriX: an image is shown as it will be sent, once it has been prepared with the compression choice.
+ */
+private fun Attachment.Media.previewMedia(preparedVersion: PreparedVersion?): LocalMedia {
+    return if (preparedVersion != null && preparedVersion.sourceUri == localMedia.uri && localMedia.info.isImageAttachment()) {
+        localMedia.copy(uri = preparedVersion.uri)
+    } else {
+        localMedia
+    }
+}
+
+@Composable
+private fun ImageOptimizationSelector(state: MediaOptimizationSelectorState, uploadSize: Long?) {
+    val sizeFormatter = rememberFileSizeFormatter()
     if (state.displayMediaSelectorViews == true) {
         Row(
             modifier = Modifier
@@ -396,6 +442,14 @@ private fun ImageOptimizationSelector(state: MediaOptimizationSelectorState) {
                     .align(Alignment.CenterVertically),
                 text = stringResource(R.string.screen_media_upload_preview_optimize_image_quality_title),
                 style = ElementTheme.typography.fontBodyLgRegular,
+            )
+            Text(
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .padding(horizontal = 12.dp),
+                text = uploadSize?.let { sizeFormatter.format(it, true) } ?: "…",
+                style = ElementTheme.typography.fontBodyMdRegular,
+                color = ElementTheme.colors.textSecondary,
             )
             Switch(
                 modifier = Modifier.height(32.dp),

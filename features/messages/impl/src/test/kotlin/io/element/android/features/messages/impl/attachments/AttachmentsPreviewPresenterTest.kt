@@ -111,10 +111,12 @@ class AttachmentsPreviewPresenterTest : RobolectricTest() {
             },
         )
         val onDoneListener = lambdaRecorder<Unit> { }
+        val deleteCallback = lambdaRecorder<Uri?, Unit> {}
         val mediaPreProcessor = FakeMediaPreProcessor()
         val presenter = createAttachmentsPreviewPresenter(
             room = room,
             mediaPreProcessor = mediaPreProcessor,
+            temporaryUriDeleter = FakeTemporaryUriDeleter(deleteCallback),
             onDoneListener = { onDoneListener() },
         )
         presenter.test {
@@ -130,6 +132,8 @@ class AttachmentsPreviewPresenterTest : RobolectricTest() {
             sendFileResult.assertions().isCalledOnce()
             onDoneListener.assertions().isCalledOnce()
             assertThat(mediaPreProcessor.cleanUpCallCount).isEqualTo(1)
+            // MatriX: the original kept for processing it again is deleted once sent
+            deleteCallback.assertions().isCalledOnce()
         }
     }
 
@@ -596,6 +600,8 @@ class AttachmentsPreviewPresenterTest : RobolectricTest() {
             assertThat((appliedState.attachments.first() as Attachment.Media).localMedia.uri).isEqualTo(editedUri)
             assertThat(appliedState.imageEditorState).isNull()
             assertThat(appliedState.isApplyingImageEdits).isFalse()
+            // MatriX: the edited image is pre-processed right away to show its upload size
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -944,7 +950,8 @@ class AttachmentsPreviewPresenterTest : RobolectricTest() {
         timelineMode: Timeline.Mode = Timeline.Mode.Live,
         permalinkBuilder: PermalinkBuilder = FakePermalinkBuilder(),
         mediaPreProcessor: MediaPreProcessor = FakeMediaPreProcessor(),
-        temporaryUriDeleter: TemporaryUriDeleter = FakeTemporaryUriDeleter(),
+        // MatriX: the temporary originals are deleted once the media is sent
+        temporaryUriDeleter: TemporaryUriDeleter = FakeTemporaryUriDeleter {},
         onDoneListener: OnDoneListener = OnDoneListener { lambdaError() },
         displayMediaQualitySelectorViews: Boolean = false,
         mediaOptimizationSelectorPresenterFactory: FakeMediaOptimizationSelectorPresenterFactory = FakeMediaOptimizationSelectorPresenterFactory(

@@ -24,10 +24,12 @@ import io.element.android.libraries.mediaviewer.api.anImageMediaInfo
 import io.element.android.libraries.mediaviewer.api.local.LocalMedia
 import io.element.android.libraries.mediaviewer.test.viewer.aLocalMedia
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
+import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.robolectric.RobolectricTest
 import io.element.android.tests.testutils.test
 import io.mockk.mockk
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -169,8 +171,10 @@ class DefaultMediaOptimizationSelectorPresenterTest : RobolectricTest() {
 
     @Test
     fun `present - SelectImageOptimization sets the new value`() = runTest {
+        val sessionPreferencesStore = InMemorySessionPreferencesStore()
         val presenter = createDefaultMediaOptimizationSelectorPresenter(
             localMedia = aLocalMedia(mockMediaUrl, anImageMediaInfo()),
+            sessionPreferencesStore = sessionPreferencesStore,
         )
         presenter.test {
             // Skip loading state
@@ -181,6 +185,7 @@ class DefaultMediaOptimizationSelectorPresenterTest : RobolectricTest() {
             eventSink(MediaOptimizationSelectorEvent.SelectImageOptimization(false))
 
             assertThat(awaitItem().isImageOptimizationEnabled).isFalse()
+            assertThat(sessionPreferencesStore.doesOptimizeImages().first()).isFalse()
         }
     }
 
@@ -282,6 +287,7 @@ class DefaultMediaOptimizationSelectorPresenterTest : RobolectricTest() {
         mediaOptimizationConfigProvider: FakeMediaOptimizationConfigProvider = FakeMediaOptimizationConfigProvider(),
         videoCompressionPresetSelector: VideoCompressionPresetSelector = VideoCompressionPresetSelector(),
         sendAsFile: Boolean = false,
+        sessionPreferencesStore: InMemorySessionPreferencesStore = InMemorySessionPreferencesStore(),
     ): DefaultMediaOptimizationSelectorPresenter {
         return DefaultMediaOptimizationSelectorPresenter(
             index = index,
@@ -292,6 +298,7 @@ class DefaultMediaOptimizationSelectorPresenterTest : RobolectricTest() {
             mediaExtractorFactory = mediaExtractorFactory,
             mediaOptimizationConfigProvider = mediaOptimizationConfigProvider,
             videoCompressionPresetSelector = videoCompressionPresetSelector,
+            sessionPreferencesStore = sessionPreferencesStore,
         )
     }
 }

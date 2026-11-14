@@ -93,6 +93,9 @@ class DefaultMediaSender(
                 mimeType = mimeType,
                 deleteOriginal = false,
                 mediaOptimizationConfig = mediaOptimizationConfig,
+                // MatriX: the attachments preview processes the media again when the compression choice changes,
+                // and deletes the temporary originals itself
+                keepTemporaryOriginal = true,
             )
     }
 

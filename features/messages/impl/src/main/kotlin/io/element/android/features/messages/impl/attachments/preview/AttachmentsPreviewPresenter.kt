@@ -58,6 +58,7 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -162,7 +163,13 @@ class AttachmentsPreviewPresenter(
             isApplyingImageEdits,
             editedAttachments,
         ) {
-            if (mediaOptimizationSelectorStates.any { it.displayMediaSelectorViews == true } ||
+            // MatriX: images are pre-processed even with the compression switch shown, so the view
+            // can show the size that will be sent; only the video quality selector still waits
+            val isVideoSelectorDisplayed = mediaOptimizationSelectorStates.withIndex().any { (index, selectorState) ->
+                selectorState.displayMediaSelectorViews == true &&
+                    (editedAttachments[index] as Attachment.Media).localMedia.info.mimeType.isMimeTypeVideo()
+            }
+            if (isVideoSelectorDisplayed ||
                 imageEditorState != null ||
                 isApplyingImageEdits
             ) {
@@ -178,7 +185,9 @@ class AttachmentsPreviewPresenter(
                     mediaOptimizationSelectorState = mediaOptimizationSelectorState,
                 )
             }
-            preprocessMediaJob?.cancel()
+            // MatriX: the file prepared before stays on screen until the new one replaces it (same name); the temporary
+            // files are all deleted when the media is sent or the preview is dismissed
+            preprocessMediaJob?.cancelAndJoin()
             preprocessMediaJob = coroutineScope.launch(dispatchers.io) {
                 preProcessAttachments(
                     attachments = editedAttachments,
@@ -554,6 +563,12 @@ class AttachmentsPreviewPresenter(
     }.fold(
         onSuccess = {
             mediaUploadInfos.forEach { cleanUp(it) }
+            // MatriX: the pre-processing keeps the temporary originals, to process them again if the compression choice changes
+            attachments.forEach { attachment ->
+                when (attachment) {
+                    is Attachment.Media -> temporaryUriDeleter.delete(attachment.localMedia.uri)
+                }
+            }
             sendActionState.value = SendActionState.Done
             onDoneListener()
         },

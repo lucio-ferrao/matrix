@@ -23,6 +23,9 @@ class LocalMediaViewState internal constructor(
     val zoomableState: ZoomableState,
 ) {
     var isReady: Boolean by mutableStateOf(false)
+
+    // MatriX: an image is shown in full quality (all its tiles loaded for the zoomed region)
+    var isShownInFullQuality: Boolean by mutableStateOf(false)
     var playableState: PlayableState by mutableStateOf(PlayableState.NotPlayable)
 }
 

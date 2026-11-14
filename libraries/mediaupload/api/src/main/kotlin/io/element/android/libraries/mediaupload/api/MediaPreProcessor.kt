@@ -22,6 +22,7 @@ interface MediaPreProcessor {
      * @param mimeType the MIME type of that media.
      * @param deleteOriginal whether to delete the source file once processing is done.
      * @param mediaOptimizationConfig how aggressively the media should be compressed.
+     * @param keepTemporaryOriginal MatriX: whether to keep the source when it is a temporary file of the app, so it can be processed again.
      * @return a [Result] with the [MediaUploadInfo] containing all the info needed to begin the upload.
      */
     suspend fun process(
@@ -29,6 +30,7 @@ interface MediaPreProcessor {
         mimeType: String,
         deleteOriginal: Boolean,
         mediaOptimizationConfig: MediaOptimizationConfig,
+        keepTemporaryOriginal: Boolean = false,
     ): Result<MediaUploadInfo>
 
     /**
