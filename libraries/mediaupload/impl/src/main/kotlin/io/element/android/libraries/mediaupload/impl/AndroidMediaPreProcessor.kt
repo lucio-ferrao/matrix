@@ -129,7 +129,8 @@ class AndroidMediaPreProcessor(
             }
         }
         // Clear temporary files created by this pre-processor in the separate uploads directory
-        baseTmpFileDir.listFiles()?.onEach { it.delete() }
+        // MatriX: recursively, for the folders of the prepared files
+        baseTmpFileDir.listFiles()?.onEach { it.deleteRecursively() }
     }
 
     private suspend fun processFile(uri: Uri, mimeType: String): MediaUploadInfo {
@@ -147,7 +148,9 @@ class AndroidMediaPreProcessor(
     private fun MediaUploadInfo.postProcess(uri: Uri): MediaUploadInfo {
         Timber.d("Finished processing, post-processing ${uri.path.orEmpty().hash()}")
         val name = context.getFileName(uri) ?: return this
-        val renamedFile = File(context.cacheDir, name).also {
+        // MatriX: in a folder of its own, because a photo taken by the camera is cache/photo.jpg, and a prepared file
+        // with that name in the cache folder replaced the original, which is kept to prepare it again
+        val renamedFile = File(File(baseTmpFileDir, UUID.randomUUID().toString()).apply { mkdirs() }, name).also {
             file.safeRenameTo(it)
         }
         return when (this) {
