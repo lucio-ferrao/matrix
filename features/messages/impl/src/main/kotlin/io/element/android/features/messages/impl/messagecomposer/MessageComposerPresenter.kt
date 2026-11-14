@@ -207,7 +207,7 @@ class MessageComposerPresenter(
             localCoroutineScope.handlePickedMedia(uri, mimeType ?: MimeTypes.OctetStream, sendAsFile = true)
         }
         val cameraPhotoPicker = mediaPickerProvider.registerCameraPhotoPicker { uri ->
-            localCoroutineScope.handlePickedMedia(uri, MimeTypes.Jpeg)
+            localCoroutineScope.handlePickedMedia(uri, MimeTypes.Jpeg, fromCamera = true)
         }
         val isFullScreen = rememberSaveable {
             mutableStateOf(false)
@@ -647,6 +647,7 @@ class MessageComposerPresenter(
         uri: Uri?,
         mimeType: String? = null,
         sendAsFile: Boolean = false,
+        fromCamera: Boolean = false,
     ) = launch {
         uri ?: return@launch
         val localMedia = createLocalMedia(
@@ -655,7 +656,7 @@ class MessageComposerPresenter(
         )
         val mediaAttachment = Attachment.Media(localMedia, sendAsFile = sendAsFile)
         val inReplyToEventId = (messageComposerContext.composerMode as? MessageComposerMode.Reply)?.eventId
-        navigator.navigateToPreviewAttachments(persistentListOf(mediaAttachment), inReplyToEventId)
+        navigator.navigateToPreviewAttachments(persistentListOf(mediaAttachment), inReplyToEventId, fromCamera)
 
         resetComposerModeAfterAttaching()
     }

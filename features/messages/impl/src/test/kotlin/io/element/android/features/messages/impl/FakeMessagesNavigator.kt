@@ -46,7 +46,7 @@ class FakeMessagesNavigator(
         onEditPollClickLambda(eventId)
     }
 
-    override fun navigateToPreviewAttachments(attachments: ImmutableList<Attachment>, inReplyToEventId: EventId?) {
+    override fun navigateToPreviewAttachments(attachments: ImmutableList<Attachment>, inReplyToEventId: EventId?, fromCamera: Boolean) {
         onPreviewAttachmentLambda(attachments, inReplyToEventId)
     }
 

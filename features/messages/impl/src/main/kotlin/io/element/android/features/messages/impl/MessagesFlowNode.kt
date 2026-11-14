@@ -12,6 +12,14 @@ import android.net.Uri
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.Transition
+import androidx.compose.animation.core.spring
+import com.bumble.appyx.core.navigation.transition.ModifierTransitionHandler
+import com.bumble.appyx.core.navigation.transition.TransitionDescriptor
+import com.bumble.appyx.navmodel.backstack.activeElement
+import com.bumble.appyx.navmodel.backstack.operation.Push
+import com.bumble.appyx.navmodel.backstack.transitionhandler.rememberBackstackSlider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -189,7 +197,13 @@ class MessagesFlowNode(
         ) : NavTarget
 
         @Parcelize
-        data class AttachmentPreview(val timelineMode: Timeline.Mode, val attachments: ImmutableList<Attachment>, val inReplyToEventId: EventId?) : NavTarget
+        data class AttachmentPreview(
+            val timelineMode: Timeline.Mode,
+            val attachments: ImmutableList<Attachment>,
+            val inReplyToEventId: EventId?,
+            // MatriX: shown without sliding in, right after the camera closes
+            val fromCamera: Boolean = false,
+        ) : NavTarget
 
         @Parcelize
         data class LocationViewer(val mode: ShowLocationMode) : NavTarget
@@ -298,12 +312,13 @@ class MessagesFlowNode(
                         )
                     }
 
-                    override fun navigateToPreviewAttachments(attachments: ImmutableList<Attachment>, inReplyToEventId: EventId?) {
+                    override fun navigateToPreviewAttachments(attachments: ImmutableList<Attachment>, inReplyToEventId: EventId?, fromCamera: Boolean) {
                         backstack.push(
                             NavTarget.AttachmentPreview(
                                 attachments = attachments,
                                 timelineMode = Timeline.Mode.Live,
                                 inReplyToEventId = inReplyToEventId,
+                                fromCamera = fromCamera,
                             )
                         )
                     }
@@ -619,12 +634,13 @@ class MessagesFlowNode(
                         )
                     }
 
-                    override fun navigateToPreviewAttachments(attachments: ImmutableList<Attachment>, inReplyToEventId: EventId?) {
+                    override fun navigateToPreviewAttachments(attachments: ImmutableList<Attachment>, inReplyToEventId: EventId?, fromCamera: Boolean) {
                         backstack.push(
                             NavTarget.AttachmentPreview(
                                 attachments = attachments,
                                 timelineMode = Timeline.Mode.Thread(navTarget.threadRootId),
                                 inReplyToEventId = inReplyToEventId,
+                                fromCamera = fromCamera,
                             )
                         )
                     }
@@ -987,6 +1003,30 @@ class MessagesFlowNode(
         timelineSelectionOwner?.exitTimelineSelection()
     }
 
+    /**
+     * MatriX: the attachments preview opened by the camera appears without sliding in, as the camera closes without an
+     * animation, so the conversation does not show in between; everything else slides in as before.
+     */
+    @Composable
+    private fun rememberCameraPreviewTransitionHandler(): ModifierTransitionHandler<NavTarget, BackStack.State> {
+        val slider = rememberBackstackSlider<NavTarget>(
+            transitionSpec = { spring(stiffness = Spring.StiffnessMediumLow) },
+        )
+        return remember(slider) {
+            object : ModifierTransitionHandler<NavTarget, BackStack.State>() {
+                override fun createModifier(
+                    modifier: Modifier,
+                    transition: Transition<BackStack.State>,
+                    descriptor: TransitionDescriptor<NavTarget, out BackStack.State>,
+                ): Modifier {
+                    val isPushFromCamera = descriptor.operation is Push<*> &&
+                        (backstack.activeElement as? NavTarget.AttachmentPreview)?.fromCamera == true
+                    return if (isPushFromCamera) modifier else slider.createModifier(modifier, transition, descriptor)
+                }
+            }
+        }
+    }
+
     @Composable
     override fun View(modifier: Modifier) {
         mentionSpanTheme.updateStyles()
@@ -1009,7 +1049,7 @@ class MessagesFlowNode(
             LocalRoomMemberProfilesCache provides roomMemberProfilesCache,
         ) {
             Box(modifier = modifier) {
-                BackstackView()
+                BackstackView(transitionHandler = rememberCameraPreviewTransitionHandler())
                 OverlayView()
                 AsyncIndicatorHost(modifier = Modifier.statusBarsPadding(), state = asyncIndicatorState)
             }
