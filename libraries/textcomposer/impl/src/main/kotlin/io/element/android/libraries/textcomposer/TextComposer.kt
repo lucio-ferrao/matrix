@@ -132,6 +132,8 @@ fun TextComposer(
     showTextFormatting: Boolean = false,
     isInThreadTimeline: Boolean = false,
     roomId: String? = null,
+    // MatriX: takes a photo with the camera, from a button next to the attachment button
+    onTakePhoto: (() -> Unit)? = null,
     // MatriX: the picture of the room at the start, as in WhatsApp; the attachment button then goes inside the text box
     roomAvatar: (@Composable () -> Unit)? = null,
 ) {
@@ -167,18 +169,35 @@ fun TextComposer(
 
     // MatriX: with the picture of the room at the start, the attachment button is at the end of the text box
     val attachmentInTextBox = roomAvatar != null && composerMode !is MessageComposerMode.Attachment && composerMode !is MessageComposerMode.EditCaption
-    val attachmentButton: (@Composable () -> Unit)? = if (attachmentInTextBox) {
+    // MatriX: the camera at the end of the text box, after the attachment button
+    val cameraInTextBox = onTakePhoto != null && composerMode !is MessageComposerMode.Attachment && composerMode !is MessageComposerMode.EditCaption
+    val attachmentButton: (@Composable () -> Unit)? = if (attachmentInTextBox || cameraInTextBox) {
         {
-            Icon(
-                modifier = Modifier
-                    .clickable(onClick = onAddAttachment)
-                    // centred in a text box of one line (42 dp, 4 dp of it above the row), at the bottom with more lines
-                    .padding(start = 4.dp, end = 8.dp, top = 3.dp, bottom = 9.dp)
-                    .size(24.dp),
-                imageVector = CompoundIcons.Attachment(),
-                contentDescription = stringResource(R.string.rich_text_editor_a11y_add_attachment),
-                tint = ElementTheme.colors.iconSecondary,
-            )
+            Row {
+                if (attachmentInTextBox) {
+                    Icon(
+                        modifier = Modifier
+                            .clickable(onClick = onAddAttachment)
+                            // centred in a text box of one line (42 dp, 4 dp of it above the row), at the bottom with more lines
+                            .padding(start = 4.dp, end = if (cameraInTextBox) 12.dp else 8.dp, top = 3.dp, bottom = 9.dp)
+                            .size(24.dp),
+                        imageVector = CompoundIcons.Attachment(),
+                        contentDescription = stringResource(R.string.rich_text_editor_a11y_add_attachment),
+                        tint = ElementTheme.colors.iconSecondary,
+                    )
+                }
+                if (onTakePhoto != null && cameraInTextBox) {
+                    Icon(
+                        modifier = Modifier
+                            .clickable(onClick = onTakePhoto)
+                            .padding(start = if (attachmentInTextBox) 0.dp else 4.dp, end = 8.dp, top = 3.dp, bottom = 9.dp)
+                            .size(24.dp),
+                        imageVector = CompoundIcons.TakePhoto(),
+                        contentDescription = stringResource(CommonStrings.action_take_photo),
+                        tint = ElementTheme.colors.iconSecondary,
+                    )
+                }
+            }
         }
     } else {
         null
@@ -188,7 +207,7 @@ fun TextComposer(
         is TextEditorState.Rich -> {
             val coroutineScope = rememberCoroutineScope()
             val view = LocalView.current
-            remember(state.richTextEditorState, composerMode, onResetComposerMode, onError, attachmentInTextBox) {
+            remember(state.richTextEditorState, composerMode, onResetComposerMode, onError, attachmentInTextBox, cameraInTextBox) {
                 @Composable {
                     TextInputBox(
                         modifier = Modifier

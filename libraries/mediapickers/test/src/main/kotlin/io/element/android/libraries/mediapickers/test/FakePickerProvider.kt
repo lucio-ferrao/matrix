@@ -51,11 +51,6 @@ class FakePickerProvider : PickerProvider {
         return NoOpPickerLauncher { onResult(result) }
     }
 
-    @Composable
-    override fun registerCameraVideoPicker(onResult: (Uri?) -> Unit): PickerLauncher<Uri, Boolean> {
-        return NoOpPickerLauncher { onResult(result) }
-    }
-
     fun givenResult(value: Uri?) {
         this.result = value
     }

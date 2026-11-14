@@ -133,6 +133,7 @@ internal fun MessageComposerView(
         onTyping = ::onTyping,
         onSelectRichContent = ::sendUri,
         roomId = state.roomId,
+        onTakePhoto = { state.eventSink(MessageComposerEvent.PickAttachmentSource.PhotoFromCamera) },
         roomAvatar = roomAvatar?.let { avatarData ->
             {
                 Avatar(

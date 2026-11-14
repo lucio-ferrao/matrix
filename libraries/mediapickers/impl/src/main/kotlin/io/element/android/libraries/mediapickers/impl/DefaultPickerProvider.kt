@@ -153,24 +153,6 @@ class DefaultPickerProvider(
         }
     }
 
-    /**
-     * Remembers and returns a [PickerLauncher] for recording a video with a camera app.
-     * @param [onResult] will be called with either the video's [Uri] or `null` if nothing was selected.
-     */
-    @Composable
-    override fun registerCameraVideoPicker(onResult: (Uri?) -> Unit): PickerLauncher<Uri, Boolean> {
-        return if (LocalInspectionMode.current) {
-            NoOpPickerLauncher { onResult(null) }
-        } else {
-            val tmpFile = remember { getTemporaryFile("video.mp4") }
-            val tmpFileUri = remember(tmpFile) { getTemporaryUri(tmpFile) }
-            rememberPickerLauncher(type = PickerType.Camera.Video(tmpFileUri)) { success ->
-                // Execute callback
-                onResult(if (success) tmpFileUri else null)
-            }
-        }
-    }
-
     private fun getTemporaryFile(
         filename: String,
     ): File {

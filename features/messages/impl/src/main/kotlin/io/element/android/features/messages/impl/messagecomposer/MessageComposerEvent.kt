@@ -25,7 +25,6 @@ sealed interface MessageComposerEvent {
         data object FromGallery : PickAttachmentSource
         data object FromFiles : PickAttachmentSource
         data object PhotoFromCamera : PickAttachmentSource
-        data object VideoFromCamera : PickAttachmentSource
         data object Location : PickAttachmentSource
         data object Poll : PickAttachmentSource
     }

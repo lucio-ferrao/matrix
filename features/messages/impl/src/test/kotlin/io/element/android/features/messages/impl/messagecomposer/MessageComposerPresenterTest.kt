@@ -964,54 +964,6 @@ class MessageComposerPresenterTest : RobolectricTest() {
     }
 
     @Test
-    fun `present - Record video`() = runTest {
-        val room = FakeJoinedRoom(
-            typingNoticeResult = { Result.success(Unit) }
-        )
-        val permissionPresenter = FakePermissionsPresenter().apply { setPermissionGranted() }
-        val onPreviewAttachmentLambda = lambdaRecorder { _: ImmutableList<Attachment>, _: EventId? -> }
-        val navigator = FakeMessagesNavigator(
-            onPreviewAttachmentLambda = onPreviewAttachmentLambda
-        )
-        val presenter = createPresenter(
-            room = room,
-            permissionPresenter = permissionPresenter,
-            navigator = navigator,
-        )
-        presenter.test {
-            val initialState = awaitFirstItem()
-            initialState.eventSink(MessageComposerEvent.PickAttachmentSource.VideoFromCamera)
-            onPreviewAttachmentLambda.assertions().isCalledOnce()
-        }
-    }
-
-    @Test
-    fun `present - Record video with permission request`() = runTest {
-        val room = FakeJoinedRoom(
-            typingNoticeResult = { Result.success(Unit) }
-        )
-        val permissionPresenter = FakePermissionsPresenter()
-        val onPreviewAttachmentLambda = lambdaRecorder { _: ImmutableList<Attachment>, _: EventId? -> }
-        val navigator = FakeMessagesNavigator(
-            onPreviewAttachmentLambda = onPreviewAttachmentLambda
-        )
-        val presenter = createPresenter(
-            room = room,
-            permissionPresenter = permissionPresenter,
-            navigator = navigator,
-        )
-        presenter.test {
-            val initialState = awaitFirstItem()
-            initialState.eventSink(MessageComposerEvent.PickAttachmentSource.VideoFromCamera)
-            val permissionState = awaitItem()
-            assertThat(permissionState.showAttachmentSourcePicker).isFalse()
-            permissionPresenter.setPermissionGranted()
-            skipItems(1)
-            onPreviewAttachmentLambda.assertions().isCalledOnce()
-        }
-    }
-
-    @Test
     fun `present - errors are tracked`() = runTest {
         val testException = Exception("Test error")
         val presenter = createPresenter()

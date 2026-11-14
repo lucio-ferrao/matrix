@@ -8,6 +8,8 @@
 
 package io.element.android.libraries.mediapickers.api
 
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContract
@@ -46,17 +48,28 @@ sealed interface PickerType<Input, Output> {
 
     object Camera {
         data class Photo(val destUri: Uri) : PickerType<Uri, Boolean> {
-            override fun getContract() = ActivityResultContracts.TakePicture()
+            override fun getContract() = TakePictureWithCameraFork()
             override fun getDefaultRequest(): Uri {
                 return destUri
             }
         }
+    }
 
-        data class Video(val destUri: Uri) : PickerType<Uri, Boolean> {
-            override fun getContract() = ActivityResultContracts.CaptureVideo()
-            override fun getDefaultRequest(): Uri {
-                return destUri
-            }
+    /**
+     * MatriX: the photo is taken with the fork of Secure Camera when it is installed, which returns it with its EXIF and
+     * the selfies as previewed, without its screen to confirm it (the attachments preview follows); otherwise with the
+     * default camera app.
+     */
+    class TakePictureWithCameraFork : ActivityResultContracts.TakePicture() {
+        override fun createIntent(context: Context, input: Uri): Intent {
+            val intent = super.createIntent(context, input)
+            val forkIntent = Intent(intent).setPackage(CAMERA_FORK_PACKAGE).putExtra(EXTRA_QUICK_CAPTURE, true)
+            return if (forkIntent.resolveActivity(context.packageManager) != null) forkIntent else intent
+        }
+
+        private companion object {
+            const val CAMERA_FORK_PACKAGE = "org.ferrao.camera"
+            const val EXTRA_QUICK_CAPTURE = "android.intent.extra.quickCapture"
         }
     }
 

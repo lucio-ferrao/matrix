@@ -209,9 +209,6 @@ class MessageComposerPresenter(
         val cameraPhotoPicker = mediaPickerProvider.registerCameraPhotoPicker { uri ->
             localCoroutineScope.handlePickedMedia(uri, MimeTypes.Jpeg)
         }
-        val cameraVideoPicker = mediaPickerProvider.registerCameraVideoPicker { uri ->
-            localCoroutineScope.handlePickedMedia(uri, MimeTypes.Mp4)
-        }
         val isFullScreen = rememberSaveable {
             mutableStateOf(false)
         }
@@ -225,7 +222,6 @@ class MessageComposerPresenter(
             if (cameraPermissionState.permissionGranted) {
                 when (pendingEvent) {
                     is MessageComposerEvent.PickAttachmentSource.PhotoFromCamera -> cameraPhotoPicker.launch()
-                    is MessageComposerEvent.PickAttachmentSource.VideoFromCamera -> cameraVideoPicker.launch()
                     else -> Unit
                 }
                 pendingEvent = null
@@ -328,15 +324,6 @@ class MessageComposerPresenter(
                     showAttachmentSourcePicker = false
                     if (cameraPermissionState.permissionGranted) {
                         cameraPhotoPicker.launch()
-                    } else {
-                        pendingEvent = event
-                        cameraPermissionState.eventSink(PermissionsEvent.RequestPermissions)
-                    }
-                }
-                MessageComposerEvent.PickAttachmentSource.VideoFromCamera -> localCoroutineScope.launch {
-                    showAttachmentSourcePicker = false
-                    if (cameraPermissionState.permissionGranted) {
-                        cameraVideoPicker.launch()
                     } else {
                         pendingEvent = event
                         cameraPermissionState.eventSink(PermissionsEvent.RequestPermissions)

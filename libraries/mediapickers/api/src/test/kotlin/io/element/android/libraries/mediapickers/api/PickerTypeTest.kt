@@ -42,12 +42,4 @@ class PickerTypeTest : RobolectricTest() {
         assertThat(pickerType.getContract()).isInstanceOf(ActivityResultContracts.TakePicture::class.java)
         assertThat(pickerType.getDefaultRequest()).isEqualTo(uri)
     }
-
-    @Test
-    fun `CameraVideo - assert types`() {
-        val uri = Uri.parse("file:///tmp/test")
-        val pickerType = PickerType.Camera.Video(uri)
-        assertThat(pickerType.getContract()).isInstanceOf(ActivityResultContracts.CaptureVideo::class.java)
-        assertThat(pickerType.getDefaultRequest()).isEqualTo(uri)
-    }
 }

@@ -103,16 +103,7 @@ private fun AttachmentSourcePickerMenu(
             .imePadding()
             .verticalScroll(rememberScrollState())
     ) {
-        ListItem(
-            modifier = Modifier.clickable { state.eventSink(MessageComposerEvent.PickAttachmentSource.PhotoFromCamera) },
-            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.TakePhoto())),
-            content = { Text(stringResource(R.string.screen_room_attachment_source_camera_photo)) },
-        )
-        ListItem(
-            modifier = Modifier.clickable { state.eventSink(MessageComposerEvent.PickAttachmentSource.VideoFromCamera) },
-            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.VideoCall())),
-            content = { Text(stringResource(R.string.screen_room_attachment_source_camera_video)) },
-        )
+        // MatriX: no camera here, its button is next to the attachment button in the composer
         ListItem(
             modifier = Modifier.clickable { state.eventSink(MessageComposerEvent.PickAttachmentSource.FromGallery) },
             leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Image())),

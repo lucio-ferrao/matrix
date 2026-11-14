@@ -79,12 +79,4 @@ interface PickerProvider {
      */
     @Composable
     fun registerCameraPhotoPicker(onResult: (Uri?) -> Unit): PickerLauncher<Uri, Boolean>
-
-    /**
-     * Registers a launcher that opens the camera to record a video.
-     *
-     * @param onResult called with the recorded video, `null` when the user cancelled or the capture failed.
-     */
-    @Composable
-    fun registerCameraVideoPicker(onResult: (Uri?) -> Unit): PickerLauncher<Uri, Boolean>
 }
