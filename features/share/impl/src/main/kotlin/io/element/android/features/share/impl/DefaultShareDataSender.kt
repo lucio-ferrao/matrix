@@ -7,6 +7,7 @@
 
 package io.element.android.features.share.impl
 
+import android.net.Uri
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import io.element.android.features.share.api.OnSharedData
@@ -19,6 +20,7 @@ import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.mediaupload.api.MediaOptimizationConfigProviderFactory
 import io.element.android.libraries.mediaupload.api.MediaSenderRoomFactory
 import io.element.android.services.appnavstate.api.ActiveRoomsHolder
+import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
 
 @ContributesBinding(AppScope::class)
@@ -27,6 +29,7 @@ class DefaultShareDataSender(
     private val mediaOptimizationConfigProviderFactory: MediaOptimizationConfigProviderFactory,
     private val activeRoomsHolder: ActiveRoomsHolder,
     private val onSharedData: OnSharedData,
+    private val linkPreview: LinkPreview,
 ) : ShareDataSender {
     override suspend fun send(
         client: MatrixClient,
@@ -35,15 +38,29 @@ class DefaultShareDataSender(
     ): Result<Unit> = runCatchingExceptions {
         val result = when (shareIntentData) {
             is ShareIntentData.PlainText -> {
-                roomIds
-                    .map { roomId ->
-                        client.findJoinedRoom(roomId)?.liveTimeline?.sendMessage(
-                            body = shareIntentData.content,
-                            htmlBody = null,
-                            intentionalMentions = emptyList(),
-                        )?.isSuccess.orFalse()
-                    }
-                    .all { it }
+                val shared = cleanSpotifyLinks(shareIntentData.content)
+                // a link goes as the caption of the picture of its preview, when its page has one, below the name and
+                // the artist for Spotify
+                val preview = linkPreview.fetch(shared)
+                val content = preview?.heading?.takeUnless { shared.contains(it) }?.let { "$it\n$shared" } ?: shared
+                val image = preview?.image
+                try {
+                    roomIds
+                        .map { roomId ->
+                            if (image != null) {
+                                sendImage(client, roomId, image.first, image.second, caption = content)
+                            } else {
+                                client.findJoinedRoom(roomId)?.liveTimeline?.sendMessage(
+                                    body = content,
+                                    htmlBody = null,
+                                    intentionalMentions = emptyList(),
+                                )?.isSuccess.orFalse()
+                            }
+                        }
+                        .all { it }
+                } finally {
+                    image?.first?.delete()
+                }
             }
             is ShareIntentData.Uris -> {
                 val filesToShare = shareIntentData.uris
@@ -92,6 +109,22 @@ class DefaultShareDataSender(
         if (!result) {
             error("Failed to handle incoming share intent")
         }
+    }
+
+    /** Sends the picture [file] with [caption] to [roomId], as a shared media is sent. */
+    private suspend fun sendImage(client: MatrixClient, roomId: RoomId, file: File, mimeType: String, caption: String): Boolean {
+        val room = client.findJoinedRoom(roomId) ?: return false
+        val result = mediaSenderRoomFactory.create(client = client, room = room).sendMedia(
+            uri = Uri.fromFile(file),
+            mimeType = mimeType,
+            caption = caption,
+            mediaOptimizationConfig = mediaOptimizationConfigProviderFactory.create(client).get(),
+        )
+        if (activeRoomsHolder.getActiveRoomMatching(client.sessionId, roomId) == null) {
+            room.destroy()
+        }
+        (result.exceptionOrNull() as? CancellationException)?.let { throw it }
+        return result.isSuccess
     }
 
     private suspend fun MatrixClient.findJoinedRoom(roomId: RoomId): JoinedRoom? {

@@ -111,9 +111,11 @@ private fun createDefaultShareDataSender(
     },
     activeRoomsHolder: ActiveRoomsHolder = DefaultActiveRoomsHolder(),
     onSharedData: OnSharedData = OnSharedData {},
+    linkPreview: LinkPreview = LinkPreview { null },
 ) = DefaultShareDataSender(
     mediaSenderRoomFactory = mediaSenderRoomFactory,
     mediaOptimizationConfigProviderFactory = mediaOptimizationConfigProviderFactory,
     activeRoomsHolder = activeRoomsHolder,
     onSharedData = onSharedData,
+    linkPreview = linkPreview,
 )
