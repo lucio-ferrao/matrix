@@ -5,13 +5,16 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.features.share.impl
+package io.element.android.libraries.mediaupload.impl
 
 import android.content.Context
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.di.annotations.ApplicationContext
+import io.element.android.libraries.mediaupload.api.LinkPreview
+import io.element.android.libraries.mediaupload.api.LinkPreviewContent
+import io.element.android.libraries.mediaupload.api.firstLink
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
@@ -21,32 +24,19 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 
-/** What the page of a shared link shows in link previews, to send it with the link. */
-class SharedLinkPreview(
-    /** The picture (`og:image`), downloaded, with its MIME type. */
-    val image: Pair<File, String>?,
-    /** For Spotify, the name and the artist, to go above the link (Spotify only shares the link). */
-    val heading: String?,
-)
-
-fun interface LinkPreview {
-    /** The preview of the first link in [text]; null when its page has none or does not answer. */
-    suspend fun fetch(text: String): SharedLinkPreview?
-}
-
 @ContributesBinding(AppScope::class)
 class DefaultLinkPreview(
     @ApplicationContext private val context: Context,
     private val dispatchers: CoroutineDispatchers,
 ) : LinkPreview {
-    override suspend fun fetch(text: String): SharedLinkPreview? = withContext(dispatchers.io) {
-        val link = LINK.find(text)?.value ?: return@withContext null
+    override suspend fun fetch(text: String): LinkPreviewContent? = withContext(dispatchers.io) {
+        val link = firstLink(text) ?: return@withContext null
         try {
             val page = open(link) ?: return@withContext null
             val html = page.inputStream.use { it.readUpTo(MAX_PAGE_BYTES) }.toString(Charsets.UTF_8)
-            val heading = if (page.url.host == SPOTIFY_HOST) spotifyHeadingOf(html) else null
+            val spotify = if (page.url.host == SPOTIFY_HOST) spotifyNameOf(html) else null
             val image = previewImageOf(html)?.let { download(URL(page.url, it)) }
-            SharedLinkPreview(image, heading).takeIf { image != null || heading != null }
+            LinkPreviewContent(image, spotify?.first, spotify?.second).takeIf { image != null || spotify != null }
         } catch (e: Exception) {
             Timber.w(e, "No preview for the shared link")
             null
@@ -80,7 +70,6 @@ class DefaultLinkPreview(
         const val MAX_PAGE_BYTES = 512 * 1024
         const val MAX_IMAGE_BYTES = 10 * 1024 * 1024
         const val SPOTIFY_HOST = "open.spotify.com"
-        val LINK = Regex("""https?://\S+""")
     }
 }
 
@@ -101,14 +90,14 @@ internal fun previewImageOf(html: String): String? =
     metaContent(html, "og:image", "og:image:url", "og:image:secure_url", "twitter:image")
 
 /**
- * The name and the artist of a page of Spotify: "Never Gonna Give You Up · Rick Astley" for a song (the artist is
- * the start of the description); for an album or a playlist the title without Spotify's "Listen to … | Spotify",
- * which already names the artist.
+ * The name and the artist of a page of Spotify: "Never Gonna Give You Up" and "Rick Astley" for a song (the artist
+ * is the start of the description); for an album or a playlist the title without Spotify's "Listen to … | Spotify",
+ * which already names the artist, and no artist.
  */
-internal fun spotifyHeadingOf(html: String): String? {
+internal fun spotifyNameOf(html: String): Pair<String, String?>? {
     val title = metaContent(html, "og:title")?.removePrefix("Listen to ")?.removeSuffix(" | Spotify")?.trim() ?: return null
     val artist = metaContent(html, "og:description")?.substringBefore(" · ")?.trim()
-    return if (artist.isNullOrEmpty() || title.contains(artist)) title else "$title · $artist"
+    return title to artist?.takeUnless { it.isEmpty() || title.contains(it) }
 }
 
 /** The content of the first of the meta tags [names] in [html] that has one. */
@@ -138,8 +127,3 @@ private val NAMED_ENTITIES = mapOf("amp" to "&", "quot" to "\"", "apos" to "'", 
 private val META = Regex("""<meta\s[^>]*>""", RegexOption.IGNORE_CASE)
 private val NAME = Regex("""(?:property|name)\s*=\s*(["'])(.*?)\1""", RegexOption.IGNORE_CASE)
 private val CONTENT = Regex("""content\s*=\s*(["'])(.*?)\1""", RegexOption.IGNORE_CASE)
-
-/** The links of Spotify (open.spotify.com) in [text] with only their path: the query (`?si=…`) says who shared them. */
-fun cleanSpotifyLinks(text: String): String = SPOTIFY_LINK.replace(text) { it.groupValues[1] }
-
-private val SPOTIFY_LINK = Regex("""(https?://open\.spotify\.com/[^\s?#]*)[?#]\S*""")

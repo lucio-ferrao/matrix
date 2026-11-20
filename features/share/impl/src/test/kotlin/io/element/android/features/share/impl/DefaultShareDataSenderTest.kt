@@ -18,6 +18,7 @@ import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.room.FakeJoinedRoom
 import io.element.android.libraries.matrix.test.timeline.FakeTimeline
+import io.element.android.libraries.mediaupload.api.LinkPreview
 import io.element.android.libraries.mediaupload.api.MediaOptimizationConfigProviderFactory
 import io.element.android.libraries.mediaupload.api.MediaSenderRoomFactory
 import io.element.android.libraries.mediaupload.test.FakeMediaOptimizationConfigProvider

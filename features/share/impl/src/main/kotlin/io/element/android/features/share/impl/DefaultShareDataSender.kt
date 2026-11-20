@@ -17,7 +17,10 @@ import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.room.JoinedRoom
+import io.element.android.libraries.mediaupload.api.LinkPreview
 import io.element.android.libraries.mediaupload.api.MediaOptimizationConfigProviderFactory
+import io.element.android.libraries.mediaupload.api.cleanSpotifyLinks
+import io.element.android.libraries.mediaupload.api.linkCaption
 import io.element.android.libraries.mediaupload.api.MediaSenderRoomFactory
 import io.element.android.services.appnavstate.api.ActiveRoomsHolder
 import java.io.File
@@ -39,20 +42,20 @@ class DefaultShareDataSender(
         val result = when (shareIntentData) {
             is ShareIntentData.PlainText -> {
                 val shared = cleanSpotifyLinks(shareIntentData.content)
-                // a link goes as the caption of the picture of its preview, when its page has one, below the name and
-                // the artist for Spotify
+                // a link goes as the caption of the picture of its preview, when its page has one, below the name (in
+                // bold) and the artist for Spotify
                 val preview = linkPreview.fetch(shared)
-                val content = preview?.heading?.takeUnless { shared.contains(it) }?.let { "$it\n$shared" } ?: shared
+                val (content, html) = linkCaption(preview?.name, preview?.artist, shared, html = null)
                 val image = preview?.image
                 try {
                     roomIds
                         .map { roomId ->
                             if (image != null) {
-                                sendImage(client, roomId, image.first, image.second, caption = content)
+                                sendImage(client, roomId, image.first, image.second, caption = content, formattedCaption = html)
                             } else {
                                 client.findJoinedRoom(roomId)?.liveTimeline?.sendMessage(
                                     body = content,
-                                    htmlBody = null,
+                                    htmlBody = html,
                                     intentionalMentions = emptyList(),
                                 )?.isSuccess.orFalse()
                             }
@@ -112,12 +115,20 @@ class DefaultShareDataSender(
     }
 
     /** Sends the picture [file] with [caption] to [roomId], as a shared media is sent. */
-    private suspend fun sendImage(client: MatrixClient, roomId: RoomId, file: File, mimeType: String, caption: String): Boolean {
+    private suspend fun sendImage(
+        client: MatrixClient,
+        roomId: RoomId,
+        file: File,
+        mimeType: String,
+        caption: String,
+        formattedCaption: String?,
+    ): Boolean {
         val room = client.findJoinedRoom(roomId) ?: return false
         val result = mediaSenderRoomFactory.create(client = client, room = room).sendMedia(
             uri = Uri.fromFile(file),
             mimeType = mimeType,
             caption = caption,
+            formattedCaption = formattedCaption,
             mediaOptimizationConfig = mediaOptimizationConfigProviderFactory.create(client).get(),
         )
         if (activeRoomsHolder.getActiveRoomMatching(client.sessionId, roomId) == null) {

@@ -36,4 +36,7 @@ sealed interface MessageComposerEvent {
     data class InsertSuggestion(val resolvedSuggestion: ResolvedSuggestion) : MessageComposerEvent
     data object SaveDraft : MessageComposerEvent
     data object ClearSlashError : MessageComposerEvent
+
+    /** MatriX: the × of the preview of the link being typed: the message goes as text. */
+    data object DismissLinkPreview : MessageComposerEvent
 }

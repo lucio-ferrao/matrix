@@ -42,6 +42,7 @@ import io.element.android.libraries.matrix.ui.contacts.ContactNicknames
 import io.element.android.libraries.matrix.ui.media.contentvalidation.InMemoryEventContentValidationCache
 import io.element.android.libraries.mediapickers.api.PickerProvider
 import io.element.android.libraries.mediapickers.test.FakePickerProvider
+import io.element.android.libraries.mediaupload.api.LinkPreview
 import io.element.android.libraries.mediaupload.api.MediaOptimizationConfig
 import io.element.android.libraries.mediaupload.api.MediaPreProcessor
 import io.element.android.libraries.mediaupload.api.MediaSenderFactory
@@ -328,6 +329,7 @@ class MessageComposerPresenterSlashCommandTest {
         contentScannerService = { _, _ -> },
         contentValidationCache = InMemoryEventContentValidationCache(),
         dispatchers = testCoroutineDispatchers(useUnconfinedTestDispatcher = true),
+        linkPreviews = LinkPreview { null },
     ).apply {
         isTesting = true
         showTextFormatting = isRichTextEditorEnabled

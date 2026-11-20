@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
@@ -72,8 +73,12 @@ import io.element.android.libraries.matrix.ui.messages.reply.content
 import io.element.android.libraries.matrix.ui.messages.reply.eventId
 import io.element.android.libraries.matrix.ui.messages.reply.map
 import io.element.android.libraries.mediapickers.api.PickerProvider
+import io.element.android.libraries.mediaupload.api.LinkPreview
 import io.element.android.libraries.mediaupload.api.MediaOptimizationConfigProvider
 import io.element.android.libraries.mediaupload.api.MediaSenderFactory
+import io.element.android.libraries.mediaupload.api.cleanSpotifyLinks
+import io.element.android.libraries.mediaupload.api.firstLink
+import io.element.android.libraries.mediaupload.api.linkCaption
 import io.element.android.libraries.mediaviewer.api.local.LocalMediaFactory
 import io.element.android.libraries.permissions.api.PermissionsEvent
 import io.element.android.libraries.permissions.api.PermissionsPresenter
@@ -105,7 +110,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -150,6 +157,7 @@ class MessageComposerPresenter(
     private val contentScannerService: ContentScannerService,
     private val contentValidationCache: EventContentValidationCache,
     private val dispatchers: CoroutineDispatchers,
+    private val linkPreviews: LinkPreview,
 ) : Presenter<MessageComposerState> {
     @AssistedFactory
     interface Factory {
@@ -252,6 +260,30 @@ class MessageComposerPresenter(
 
         val slashCommandAction = remember { mutableStateOf<AsyncAction<Unit>>(AsyncAction.Uninitialized) }
 
+        // MatriX: the preview of the link being typed, once the typing stops; the one removed with × is not fetched again
+        var composerLinkPreview by remember { mutableStateOf<ComposerLinkPreview?>(null) }
+        var dismissedLink by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(Unit) {
+            snapshotFlow {
+                if (messageComposerContext.composerMode.isEditing) {
+                    null
+                } else {
+                    firstLink(if (showTextFormatting) richTextEditorState.messageMarkdown else markdownTextEditorState.text.toString())
+                }
+            }
+                .debounce(LINK_PREVIEW_DELAY)
+                .distinctUntilChanged()
+                .collectLatest { link ->
+                    if (link != null && link == composerLinkPreview?.link) return@collectLatest
+                    composerLinkPreview?.image?.delete()
+                    composerLinkPreview = null
+                    if (link == null || link == dismissedLink) return@collectLatest
+                    val content = linkPreviews.fetch(link) ?: return@collectLatest
+                    val (image, mimeType) = content.image ?: return@collectLatest
+                    composerLinkPreview = ComposerLinkPreview(link, image, mimeType, content.name, content.artist)
+                }
+        }
+
         LaunchedEffect(Unit) {
             val draft = draftService.loadDraft(
                 roomId = room.roomId,
@@ -280,7 +312,16 @@ class MessageComposerPresenter(
                         markdownTextEditorState = markdownTextEditorState,
                         richTextEditorState = richTextEditorState,
                         slashCommandAction = slashCommandAction,
+                        linkPreview = composerLinkPreview,
                     )
+                    // the picture is the message's now: sendMessage deletes it
+                    composerLinkPreview = null
+                    dismissedLink = null
+                }
+                is MessageComposerEvent.DismissLinkPreview -> {
+                    dismissedLink = composerLinkPreview?.link
+                    composerLinkPreview?.image?.delete()
+                    composerLinkPreview = null
                 }
                 is MessageComposerEvent.SendUri -> {
                     val inReplyToEventId = (messageComposerContext.composerMode as? MessageComposerMode.Reply)?.eventId
@@ -426,6 +467,7 @@ class MessageComposerPresenter(
             slashCommandAction = slashCommandAction.value,
             eventSink = ::handleEvent,
             roomId = room.roomId.value,
+            linkPreview = composerLinkPreview,
         )
     }
 
@@ -483,9 +525,13 @@ class MessageComposerPresenter(
         markdownTextEditorState: MarkdownTextEditorState,
         richTextEditorState: RichTextEditorState,
         slashCommandAction: MutableState<AsyncAction<Unit>>,
+        linkPreview: ComposerLinkPreview? = null,
     ) = launch {
-        val message = currentComposerMessage(markdownTextEditorState, richTextEditorState, withMentions = true)
         val capturedMode = messageComposerContext.composerMode
+        // MatriX: links of Spotify without the query that says who shared them
+        val message = currentComposerMessage(markdownTextEditorState, richTextEditorState, withMentions = true).let {
+            if (capturedMode.isEditing) it else it.copy(markdown = cleanSpotifyLinks(it.markdown), html = it.html?.let(::cleanSpotifyLinks))
+        }
 
         val slashCommand = if (capturedMode is MessageComposerMode.Normal) {
             slashCommandService.parse(
@@ -547,7 +593,25 @@ class MessageComposerPresenter(
 
         // Reset composer right away
         resetComposer(markdownTextEditorState, richTextEditorState, fromEdit = capturedMode is MessageComposerMode.Edit)
-        when (capturedMode) {
+        // MatriX: a link with the picture of its preview goes as the caption of the picture, below the name (in bold)
+        // and the artist for Spotify
+        val preview = linkPreview?.takeIf {
+            (capturedMode is MessageComposerMode.Normal || capturedMode is MessageComposerMode.Reply) && message.markdown.contains(it.link)
+        }
+        if (preview != null) {
+            val (caption, formattedCaption) = linkCaption(preview.name, preview.artist, message.markdown, message.html)
+            sendMedia(
+                uri = Uri.fromFile(preview.image),
+                mimeType = preview.mimeType,
+                inReplyToEventId = (capturedMode as? MessageComposerMode.Reply)?.eventId,
+                caption = caption,
+                formattedCaption = formattedCaption,
+            )
+            preview.image.delete()
+        } else {
+            linkPreview?.image?.delete()
+        }
+        if (preview == null) when (capturedMode) {
             is MessageComposerMode.Attachment,
             is MessageComposerMode.Normal -> timelineController.invokeOnCurrentTimeline {
                 sendMessage(
@@ -697,10 +761,14 @@ class MessageComposerPresenter(
         uri: Uri,
         mimeType: String,
         inReplyToEventId: EventId?,
+        caption: String? = null,
+        formattedCaption: String? = null,
     ) = runCatchingExceptions {
         mediaSender.sendMedia(
             uri = uri,
             mimeType = mimeType,
+            caption = caption,
+            formattedCaption = formattedCaption,
             mediaOptimizationConfig = mediaOptimizationConfigProvider.get(),
             inReplyToEventId = inReplyToEventId,
         ).getOrThrow()
@@ -927,3 +995,6 @@ class MessageComposerPresenter(
         }
     }
 }
+
+/** MatriX: how long the typing stops before the preview of a link in the composer is fetched, in milliseconds. */
+private const val LINK_PREVIEW_DELAY = 1_000L

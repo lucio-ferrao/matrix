@@ -8,6 +8,7 @@
 
 package io.element.android.features.messages.impl.messagecomposer
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.textcomposer.mentions.ResolvedSuggestion
@@ -15,6 +16,7 @@ import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.TextEditorState
 import io.element.android.wysiwyg.display.TextDisplay
 import kotlinx.collections.immutable.ImmutableList
+import java.io.File
 
 @Stable
 data class MessageComposerState(
@@ -32,4 +34,16 @@ data class MessageComposerState(
     val eventSink: (MessageComposerEvent) -> Unit,
     /** The room of the composer, told to the keyboard (Keyarchy) so it knows which chat is open. */
     val roomId: String? = null,
+    /** MatriX: the preview of the link being typed, shown above the composer and sent with the message. */
+    val linkPreview: ComposerLinkPreview? = null,
+)
+
+/** The picture of the preview of [link] (and, for Spotify, the name and the artist), to send with it. */
+@Immutable
+data class ComposerLinkPreview(
+    val link: String,
+    val image: File,
+    val mimeType: String,
+    val name: String?,
+    val artist: String?,
 )
