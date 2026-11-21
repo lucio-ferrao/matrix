@@ -41,6 +41,7 @@ import io.element.android.features.messages.impl.attachments.preview.error.sendA
 import io.element.android.features.messages.impl.draft.ComposerDraftService
 import io.element.android.features.messages.impl.messagecomposer.suggestions.RoomAliasSuggestionsDataSource
 import io.element.android.features.messages.impl.messagecomposer.suggestions.SuggestionsProcessor
+import io.element.android.features.messages.impl.stickers.StickerStore
 import io.element.android.features.messages.impl.timeline.TimelineController
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
@@ -96,10 +97,12 @@ import io.element.android.libraries.textcomposer.model.Suggestion
 import io.element.android.libraries.textcomposer.model.SuggestionType
 import io.element.android.libraries.textcomposer.model.TextEditorState
 import io.element.android.libraries.textcomposer.model.rememberMarkdownTextEditorState
+import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analyticsproviders.api.trackers.captureInteraction
 import io.element.android.wysiwyg.compose.RichTextEditorState
 import io.element.android.wysiwyg.display.TextDisplay
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
@@ -109,8 +112,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -121,6 +124,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.File
 import kotlin.time.Duration.Companion.seconds
 import io.element.android.libraries.core.mimetype.MimeTypes.Any as AnyMimeTypes
 
@@ -158,6 +162,7 @@ class MessageComposerPresenter(
     private val contentValidationCache: EventContentValidationCache,
     private val dispatchers: CoroutineDispatchers,
     private val linkPreviews: LinkPreview,
+    private val stickerStore: StickerStore,
 ) : Presenter<MessageComposerState> {
     @AssistedFactory
     interface Factory {
@@ -263,6 +268,8 @@ class MessageComposerPresenter(
         // MatriX: the preview of the link being typed, once the typing stops; the one removed with × is not fetched again
         var composerLinkPreview by remember { mutableStateOf<ComposerLinkPreview?>(null) }
         var dismissedLink by remember { mutableStateOf<String?>(null) }
+        // MatriX: the stickers shown to send one
+        var stickers by remember { mutableStateOf<ImmutableList<File>?>(null) }
         LaunchedEffect(Unit) {
             snapshotFlow {
                 if (messageComposerContext.composerMode.isEditing) {
@@ -317,6 +324,23 @@ class MessageComposerPresenter(
                     // the picture is the message's now: sendMessage deletes it
                     composerLinkPreview = null
                     dismissedLink = null
+                }
+                is MessageComposerEvent.OpenStickers -> localCoroutineScope.launch {
+                    stickers = stickerStore.list().toImmutableList()
+                }
+                is MessageComposerEvent.CloseStickers -> stickers = null
+                is MessageComposerEvent.SendSticker -> {
+                    stickers = null
+                    sessionCoroutineScope.launch {
+                        stickerStore.send(room, event.file, threadRoot).onFailure { cause ->
+                            Timber.e(cause, "Failed to send the sticker")
+                            snackbarDispatcher.post(SnackbarMessage(CommonStrings.common_error))
+                        }
+                    }
+                }
+                is MessageComposerEvent.RemoveSticker -> localCoroutineScope.launch {
+                    stickerStore.remove(event.file)
+                    stickers = stickerStore.list().toImmutableList()
                 }
                 is MessageComposerEvent.DismissLinkPreview -> {
                     dismissedLink = composerLinkPreview?.link
@@ -468,6 +492,7 @@ class MessageComposerPresenter(
             eventSink = ::handleEvent,
             roomId = room.roomId.value,
             linkPreview = composerLinkPreview,
+            stickers = stickers,
         )
     }
 

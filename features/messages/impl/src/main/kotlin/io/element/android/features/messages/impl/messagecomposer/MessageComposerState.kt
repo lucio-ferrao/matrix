@@ -36,6 +36,8 @@ data class MessageComposerState(
     val roomId: String? = null,
     /** MatriX: the preview of the link being typed, shown above the composer and sent with the message. */
     val linkPreview: ComposerLinkPreview? = null,
+    /** MatriX: the stickers shown to send one, null when they are not shown. */
+    val stickers: ImmutableList<File>? = null,
 )
 
 /** The picture of the preview of [link] (and, for Spotify, the name and the artist), to send with it. */

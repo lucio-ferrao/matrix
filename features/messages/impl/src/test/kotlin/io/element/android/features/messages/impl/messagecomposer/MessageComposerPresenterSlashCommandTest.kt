@@ -20,6 +20,7 @@ import io.element.android.features.messages.impl.MessagesNavigator
 import io.element.android.features.messages.impl.draft.ComposerDraftService
 import io.element.android.features.messages.impl.draft.FakeComposerDraftService
 import io.element.android.features.messages.impl.messagecomposer.suggestions.SuggestionsProcessor
+import io.element.android.features.messages.impl.stickers.FakeStickerStore
 import io.element.android.features.messages.impl.timeline.TimelineController
 import io.element.android.features.messages.impl.utils.FakeMentionSpanFormatter
 import io.element.android.features.messages.test.timeline.FakeTextPillificator
@@ -330,6 +331,7 @@ class MessageComposerPresenterSlashCommandTest {
         contentValidationCache = InMemoryEventContentValidationCache(),
         dispatchers = testCoroutineDispatchers(useUnconfinedTestDispatcher = true),
         linkPreviews = LinkPreview { null },
+        stickerStore = FakeStickerStore(),
     ).apply {
         isTesting = true
         showTextFormatting = isRichTextEditorEnabled

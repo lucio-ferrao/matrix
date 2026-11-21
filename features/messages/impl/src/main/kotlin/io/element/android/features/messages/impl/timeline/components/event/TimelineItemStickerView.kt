@@ -41,7 +41,8 @@ import io.element.android.libraries.matrix.ui.media.contentvalidation.collectOve
 import io.element.android.libraries.matrixmedia.api.MediaRequestData
 import io.element.android.libraries.ui.strings.CommonStrings
 
-private const val STICKER_SIZE_IN_DP = 128
+// MatriX: about the size WhatsApp shows them (was 128)
+private const val STICKER_SIZE_IN_DP = 180
 
 @Composable
 fun TimelineItemStickerView(

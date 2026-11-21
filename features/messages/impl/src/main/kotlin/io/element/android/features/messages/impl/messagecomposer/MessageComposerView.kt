@@ -37,6 +37,7 @@ import io.element.android.features.messages.api.timeline.voicemessages.composer.
 import io.element.android.features.messages.api.timeline.voicemessages.composer.VoiceMessageComposerState
 import io.element.android.features.messages.api.timeline.voicemessages.composer.VoiceMessageComposerStatePreviewParam
 import io.element.android.features.messages.api.timeline.voicemessages.composer.aVoiceMessageComposerState
+import io.element.android.features.messages.impl.stickers.StickerPicker
 import io.element.android.libraries.designsystem.components.async.AsyncActionView
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarCornerShape
@@ -128,6 +129,14 @@ internal fun MessageComposerView(
         voiceMessageState.eventSink(VoiceMessageComposerEvent.PlayerEvent(event))
     }
 
+    state.stickers?.let { stickers ->
+        StickerPicker(
+            stickers = stickers,
+            onSend = { state.eventSink(MessageComposerEvent.SendSticker(it)) },
+            onRemove = { state.eventSink(MessageComposerEvent.RemoveSticker(it)) },
+            onDismiss = { state.eventSink(MessageComposerEvent.CloseStickers) },
+        )
+    }
     state.linkPreview?.let { preview ->
         LinkPreviewCard(preview = preview, onDismiss = { state.eventSink(MessageComposerEvent.DismissLinkPreview) })
     }
@@ -155,6 +164,7 @@ internal fun MessageComposerView(
         onSelectRichContent = ::sendUri,
         roomId = state.roomId,
         onTakePhoto = { state.eventSink(MessageComposerEvent.PickAttachmentSource.PhotoFromCamera) },
+        onOpenStickers = { state.eventSink(MessageComposerEvent.OpenStickers) },
         roomAvatar = roomAvatar?.let { avatarData ->
             {
                 Avatar(

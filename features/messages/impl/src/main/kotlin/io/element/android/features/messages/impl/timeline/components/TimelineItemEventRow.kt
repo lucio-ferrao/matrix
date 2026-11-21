@@ -623,7 +623,10 @@ private fun TimelineItemEventRowContent(
             interactionSource = interactionSource,
             onClick = onContentClick,
             onLongClick = onLongClick,
-            customBackgroundColor = dangerousContentBubbleColor ?: Color.Transparent.takeIf { isSingleEmoji },
+            // MatriX: a sticker without the bubble, as a single emoji
+            customBackgroundColor = dangerousContentBubbleColor ?: Color.Transparent.takeIf {
+                isSingleEmoji || event.content is TimelineItemStickerContent
+            },
             borderColor = borderColor,
         ) {
             MessageEventBubbleContent(

@@ -30,6 +30,7 @@ import io.element.android.features.location.api.live.ActiveLiveLocationShareMana
 import io.element.android.features.location.api.live.isCurrentlySharing
 import io.element.android.features.messages.api.timeline.HtmlConverterProvider
 import io.element.android.features.messages.impl.MessagesState.Threads
+import io.element.android.features.messages.impl.R
 import io.element.android.features.messages.impl.actionlist.ActionListState
 import io.element.android.features.messages.impl.actionlist.model.TimelineItemAction
 import io.element.android.features.messages.impl.crypto.identity.IdentityChangeState
@@ -37,6 +38,7 @@ import io.element.android.features.messages.impl.link.LinkState
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerEvent
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerState
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerState
+import io.element.android.features.messages.impl.stickers.StickerStore
 import io.element.android.features.messages.impl.timeline.MarkAsFullyRead
 import io.element.android.features.messages.impl.timeline.SelectionAction
 import io.element.android.features.messages.impl.timeline.SelectionState
@@ -48,8 +50,10 @@ import io.element.android.features.messages.impl.timeline.components.reactionsum
 import io.element.android.features.messages.impl.timeline.components.receipt.bottomsheet.ReadReceiptBottomSheetState
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.TimelineItemThreadInfo
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemImageContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemPollContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStateContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStickerContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemTextBasedContent
 import io.element.android.features.messages.impl.timeline.model.event.captionOrNull
 import io.element.android.features.messages.impl.timeline.model.event.htmlCaptionOrNull
@@ -139,6 +143,7 @@ class MessagesPresenter(
     private val markAsFullyRead: MarkAsFullyRead,
     private val liveLocationShareManager: ActiveLiveLocationShareManager,
     @SessionCoroutineScope private val sessionCoroutineScope: CoroutineScope,
+    private val stickerStore: StickerStore,
 ) : Presenter<MessagesState> {
     @AssistedFactory
     interface Factory {
@@ -439,6 +444,7 @@ class MessagesPresenter(
                     navigator.forwardEvents(listOf(eventId))
                 }
             }
+            TimelineItemAction.AddToStickers -> handleAddToStickers(targetEvent)
             TimelineItemAction.ReportContent -> handleReportAction(targetEvent)
             TimelineItemAction.EndPoll -> handleEndPollAction(targetEvent, timelineState)
             TimelineItemAction.Pin -> handlePinAction(targetEvent)
@@ -447,6 +453,21 @@ class MessagesPresenter(
             TimelineItemAction.RetrySending -> handleRetrySending(targetEvent)
             TimelineItemAction.AbortSending -> handleActionAbortSend(targetEvent)
         }
+    }
+
+    /** MatriX: keeps the picture of a received sticker or image in the folder of the stickers. */
+    private suspend fun handleAddToStickers(targetEvent: TimelineItem.Event) {
+        val (source, mimeType) = when (val content = targetEvent.content) {
+            is TimelineItemStickerContent -> (content.preferredMediaSource ?: return) to content.mimeType
+            is TimelineItemImageContent -> content.mediaSource to content.mimeType
+            else -> return
+        }
+        stickerStore.add(source, mimeType)
+            .onSuccess { snackbarDispatcher.post(SnackbarMessage(R.string.matrix_added_to_stickers)) }
+            .onFailure { cause ->
+                Timber.e(cause, "Failed to keep the sticker")
+                snackbarDispatcher.post(SnackbarMessage(CommonStrings.common_error))
+            }
     }
 
     private suspend fun handleRetrySending(targetEvent: TimelineItem.Event) {

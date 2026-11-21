@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MatriX: texts of the fork -->
+<resources>
+    <string name="matrix_add_to_stickers">"Adicionar aos autocolantes"</string>
+    <string name="matrix_added_to_stickers">"Adicionado aos autocolantes"</string>
+</resources>

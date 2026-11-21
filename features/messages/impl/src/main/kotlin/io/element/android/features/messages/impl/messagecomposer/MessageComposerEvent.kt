@@ -12,6 +12,7 @@ import android.net.Uri
 import io.element.android.libraries.textcomposer.mentions.ResolvedSuggestion
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.Suggestion
+import java.io.File
 
 sealed interface MessageComposerEvent {
     data object ToggleFullScreenState : MessageComposerEvent
@@ -39,4 +40,10 @@ sealed interface MessageComposerEvent {
 
     /** MatriX: the × of the preview of the link being typed: the message goes as text. */
     data object DismissLinkPreview : MessageComposerEvent
+
+    /** MatriX: the stickers of the folder, to send one. */
+    data object OpenStickers : MessageComposerEvent
+    data object CloseStickers : MessageComposerEvent
+    data class SendSticker(val file: File) : MessageComposerEvent
+    data class RemoveSticker(val file: File) : MessageComposerEvent
 }
