@@ -53,6 +53,7 @@ import io.element.android.libraries.designsystem.atomic.molecules.InviteButtonsR
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
+import io.element.android.libraries.designsystem.modifiers.onSecondaryClick
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Icon
@@ -189,6 +190,7 @@ private fun RoomSummaryScaffoldRow(
             interactionSource = remember { MutableInteractionSource() }
         )
         .onKeyboardContextMenuAction { onLongClick(room) }
+        .onSecondaryClick { onLongClick(room) }
     Row(
         modifier = modifier
             .fillMaxWidth()

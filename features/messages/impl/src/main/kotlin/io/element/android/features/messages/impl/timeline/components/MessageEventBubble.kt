@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
@@ -42,9 +43,9 @@ import io.element.android.features.messages.impl.timeline.model.bubble.BubbleSta
 import io.element.android.libraries.core.extensions.to01
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
+import io.element.android.libraries.designsystem.modifiers.onSecondaryClick
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.text.toDp
 import io.element.android.libraries.designsystem.text.toPx
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.messageFromMeBackground
@@ -82,6 +83,7 @@ fun MessageEventBubble(
                 interactionSource = interactionSource
             )
             .onKeyboardContextMenuAction(onLongClick)
+            .onSecondaryClick(onLongClick)
     }
 
     val cutTopStart = state.cutTopStart
@@ -140,9 +142,7 @@ fun MessageEventBubble(
                     // MatriX: a bubble without background (a single emoji) is as wide as its content, so it keeps to the
                     // side of the other bubbles instead of sitting at the start of an invisible minimum width
                     min = if (customBackgroundColor == Color.Transparent) 0.dp else MIN_BUBBLE_WIDTH,
-                    max = (constraints.maxWidth * MessageEventBubbleDefaults.BUBBLE_WIDTH_RATIO)
-                        .toInt()
-                        .toDp()
+                    max = MessageEventBubbleDefaults.maxBubbleWidth(maxWidth),
                 )
                 .then(clickableModifier),
             content = content,
@@ -190,6 +190,11 @@ object MessageEventBubbleDefaults {
 
     // Design says: The maximum width of a bubble is still 3/4 of the screen width. But try with 78% now.
     const val BUBBLE_WIDTH_RATIO = 0.78f
+
+    // MatriX: in a wide window (desktop mode on an external display) 78% makes lines too long to read
+    val BUBBLE_MAX_WIDTH = 600.dp
+
+    fun maxBubbleWidth(availableWidth: Dp): Dp = minOf(availableWidth * BUBBLE_WIDTH_RATIO, BUBBLE_MAX_WIDTH)
 }
 
 @PreviewsDayNight

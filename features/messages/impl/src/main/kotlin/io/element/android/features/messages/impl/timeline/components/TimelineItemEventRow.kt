@@ -422,7 +422,7 @@ private fun ThreadSummaryView(
                 .background(MessageEventBubbleDefaults.backgroundBubbleColor(isOutgoing))
                 .niceClickable(onClick)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
-                .widthIn(max = (maxWidth - 24.dp) * MessageEventBubbleDefaults.BUBBLE_WIDTH_RATIO),
+                .widthIn(max = MessageEventBubbleDefaults.maxBubbleWidth(maxWidth - 24.dp)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

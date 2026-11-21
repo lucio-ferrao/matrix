@@ -50,6 +50,7 @@ import io.element.android.libraries.designsystem.components.avatar.AvatarRow
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
+import io.element.android.libraries.designsystem.modifiers.onSecondaryClick
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewWithLargeHeight
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -90,6 +91,7 @@ internal fun ActiveCallTimelineItemView(
                     onLongClickLabel = stringResource(CommonStrings.action_open_context_menu),
                 )
                 .onKeyboardContextMenuAction { onLongClick(event) }
+                .onSecondaryClick { onLongClick(event) }
                 .padding(start = 12.dp, end = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,

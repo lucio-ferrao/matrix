@@ -41,6 +41,7 @@ import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.event.RtcNotificationState
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemRtcNotificationContent
 import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
+import io.element.android.libraries.designsystem.modifiers.onSecondaryClick
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.text.toDp
@@ -71,6 +72,7 @@ internal fun TimelineItemCallNotifyView(
                     onLongClickLabel = stringResource(CommonStrings.action_open_context_menu),
                 )
                 .onKeyboardContextMenuAction { onLongClick(event) }
+                .onSecondaryClick { onLongClick(event) }
                 .padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
