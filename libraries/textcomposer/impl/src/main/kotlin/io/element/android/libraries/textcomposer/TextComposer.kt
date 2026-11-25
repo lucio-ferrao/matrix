@@ -134,8 +134,6 @@ fun TextComposer(
     roomId: String? = null,
     // MatriX: takes a photo with the camera, from a button next to the attachment button
     onTakePhoto: (() -> Unit)? = null,
-    // MatriX: opens the stickers, from a button before the attachment button
-    onOpenStickers: (() -> Unit)? = null,
     // MatriX: the picture of the room at the start, as in WhatsApp; the attachment button then goes inside the text box
     roomAvatar: (@Composable () -> Unit)? = null,
 ) {
@@ -173,22 +171,9 @@ fun TextComposer(
     val attachmentInTextBox = roomAvatar != null && composerMode !is MessageComposerMode.Attachment && composerMode !is MessageComposerMode.EditCaption
     // MatriX: the camera at the end of the text box, after the attachment button
     val cameraInTextBox = onTakePhoto != null && composerMode !is MessageComposerMode.Attachment && composerMode !is MessageComposerMode.EditCaption
-    // MatriX: the stickers before them, for a new message (a sticker is a message of its own)
-    val stickersInTextBox = onOpenStickers != null && composerMode !is MessageComposerMode.Attachment && !composerMode.isEditing
-    val attachmentButton: (@Composable () -> Unit)? = if (attachmentInTextBox || cameraInTextBox || stickersInTextBox) {
+    val attachmentButton: (@Composable () -> Unit)? = if (attachmentInTextBox || cameraInTextBox) {
         {
             Row {
-                if (onOpenStickers != null && stickersInTextBox) {
-                    Icon(
-                        modifier = Modifier
-                            .clickable(onClick = onOpenStickers)
-                            .padding(start = 4.dp, end = 8.dp, top = 3.dp, bottom = 9.dp)
-                            .size(24.dp),
-                        imageVector = CompoundIcons.Reaction(),
-                        contentDescription = stringResource(CommonStrings.common_sticker),
-                        tint = ElementTheme.colors.iconSecondary,
-                    )
-                }
                 if (attachmentInTextBox) {
                     Icon(
                         modifier = Modifier
@@ -222,7 +207,7 @@ fun TextComposer(
         is TextEditorState.Rich -> {
             val coroutineScope = rememberCoroutineScope()
             val view = LocalView.current
-            remember(state.richTextEditorState, composerMode, onResetComposerMode, onError, attachmentInTextBox, cameraInTextBox, stickersInTextBox) {
+            remember(state.richTextEditorState, composerMode, onResetComposerMode, onError, attachmentInTextBox, cameraInTextBox) {
                 @Composable {
                     TextInputBox(
                         modifier = Modifier

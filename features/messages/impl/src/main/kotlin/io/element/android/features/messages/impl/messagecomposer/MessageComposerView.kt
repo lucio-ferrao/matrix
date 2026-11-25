@@ -164,7 +164,6 @@ internal fun MessageComposerView(
         onSelectRichContent = ::sendUri,
         roomId = state.roomId,
         onTakePhoto = { state.eventSink(MessageComposerEvent.PickAttachmentSource.PhotoFromCamera) },
-        onOpenStickers = { state.eventSink(MessageComposerEvent.OpenStickers) },
         roomAvatar = roomAvatar?.let { avatarData ->
             {
                 Avatar(

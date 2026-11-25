@@ -325,8 +325,11 @@ class MessageComposerPresenter(
                     composerLinkPreview = null
                     dismissedLink = null
                 }
-                is MessageComposerEvent.OpenStickers -> localCoroutineScope.launch {
-                    stickers = stickerStore.list().toImmutableList()
+                is MessageComposerEvent.OpenStickers -> {
+                    showAttachmentSourcePicker = false
+                    localCoroutineScope.launch {
+                        stickers = stickerStore.list().toImmutableList()
+                    }
                 }
                 is MessageComposerEvent.CloseStickers -> stickers = null
                 is MessageComposerEvent.SendSticker -> {
