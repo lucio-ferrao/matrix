@@ -29,10 +29,18 @@ import io.element.android.features.messages.impl.timeline.components.event.Timel
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.TimelineItemSelectionData
 import io.element.android.features.messages.impl.timeline.model.event.RtcNotificationState
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemAttachmentsContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEncryptedContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContentWithAttachment
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemGalleryContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemLegacyCallInviteContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemLocationContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemPollContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemRedactedContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemRtcNotificationContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStateContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemTextBasedContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemUnknownContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemVoiceContent
 import io.element.android.features.messages.impl.timeline.protection.TimelineProtectionState
 import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
@@ -43,6 +51,7 @@ import io.element.android.libraries.ui.common.layout.ContentAvoidingLayoutData
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.libraries.ui.utils.a11y.isTalkbackActive
 import io.element.android.wysiwyg.link.Link
+import java.util.Locale
 import kotlin.time.DurationUnit
 
 @Composable
@@ -68,6 +77,7 @@ internal fun TimelineItemRow(
     onSwipeToReply: (TimelineItem.Event) -> Unit,
     eventSink: (TimelineEvent.TimelineItemEvent) -> Unit,
     modifier: Modifier = Modifier,
+    animateSizeChanges: Boolean = true,
     eventContentView: @Composable (TimelineItem.Event, Modifier, (ContentAvoidingLayoutData) -> Unit) -> Unit =
         { event, contentModifier, onContentLayoutChange ->
             TimelineItemEventContentView(
@@ -112,6 +122,7 @@ internal fun TimelineItemRow(
             onJoinCallClick = onJoinCallClick,
             onSwipeToReply = onSwipeToReply,
             eventSink = eventSink,
+            animateSizeChanges = animateSizeChanges,
             eventContentView = eventContentView,
         )
         if (isSelectionModeActive) {
@@ -157,6 +168,7 @@ private fun TimelineItemRowContent(
     eventSink: (TimelineEvent.TimelineItemEvent) -> Unit,
     modifier: Modifier = Modifier,
     selectionData: TimelineItemSelectionData = TimelineItemSelectionData(),
+    animateSizeChanges: Boolean = true,
     eventContentView: @Composable (TimelineItem.Event, Modifier, (ContentAvoidingLayoutData) -> Unit) -> Unit,
 ) {
     Box(modifier) {
@@ -205,14 +217,26 @@ private fun TimelineItemRowContent(
                                 )
                         }
                     }
-                    else -> {
+                    is TimelineItemTextBasedContent,
+                    is TimelineItemEventContentWithAttachment,
+                    is TimelineItemAttachmentsContent,
+                    is TimelineItemGalleryContent,
+                    is TimelineItemEncryptedContent,
+                    is TimelineItemLocationContent,
+                    is TimelineItemPollContent,
+                    TimelineItemRedactedContent,
+                    TimelineItemUnknownContent -> {
                         val a11yVoiceMessage = stringResource(CommonStrings.a11y_voice_message)
                         val isSelectionToggle = selectionData.isSelectionModeActive && selectionData.canBeSelected
                         TimelineItemEventRow(
                             modifier = Modifier
                                 .semantics(mergeDescendants = true) {
                                     contentDescription = if (timelineItem.content is TimelineItemVoiceContent) {
-                                        val voiceMessageText = String.format(a11yVoiceMessage, timelineItem.content.duration.toString(DurationUnit.MINUTES))
+                                        val voiceMessageText = String.format(
+                                            Locale.getDefault(),
+                                            a11yVoiceMessage,
+                                            timelineItem.content.duration.toString(DurationUnit.MINUTES),
+                                        )
                                         "${timelineItem.safeSenderName}, $voiceMessageText"
                                     } else {
                                         timelineItem.safeSenderName
@@ -285,6 +309,7 @@ private fun TimelineItemRowContent(
                     onReactionLongClick = onReactionLongClick,
                     onReadReceiptClick = onReadReceiptClick,
                     eventSink = eventSink,
+                    animateExpansion = animateSizeChanges,
                 )
             }
         }

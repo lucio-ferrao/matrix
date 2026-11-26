@@ -53,6 +53,8 @@ sealed interface SendActionState {
         is Sending.ReadyToUpload -> mediaInfos
         is Sending.Uploading -> mediaInfos
         is Failure -> mediaInfos
-        else -> null
+        Idle,
+        is Sending.Processing,
+        Done -> null
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -99,11 +100,11 @@ import io.element.android.libraries.textcomposer.model.showCaptionCompatibilityW
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.wysiwyg.compose.RichTextEditor
 import io.element.android.wysiwyg.display.TextDisplay
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import uniffi.wysiwyg_composer.MenuAction
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * https://www.figma.com/design/G1xy0HDZKJf5TCRFmKb5d5/Compound-Android-Components?node-id=2012-39036
@@ -136,6 +137,7 @@ fun TextComposer(
     onTakePhoto: (() -> Unit)? = null,
     // MatriX: the picture of the room at the start, as in WhatsApp; the attachment button then goes inside the text box
     roomAvatar: (@Composable () -> Unit)? = null,
+    onAddEmoji: (() -> Unit)? = null,
 ) {
     val markdown = when (state) {
         is TextEditorState.Markdown -> state.state.text.value()
@@ -202,6 +204,17 @@ fun TextComposer(
     } else {
         null
     }
+    // the emoji button of Element, only if asked for, before the attachment and camera buttons
+    val markdownTrailingContent: (@Composable () -> Unit)? = if (onAddEmoji == null) {
+        attachmentButton
+    } else {
+        {
+            Row(verticalAlignment = Alignment.Bottom) {
+                AddEmojiButton(onClick = onAddEmoji)
+                attachmentButton?.invoke()
+            }
+        }
+    }
 
     val textInput: @Composable () -> Unit = when (state) {
         is TextEditorState.Rich -> {
@@ -226,7 +239,7 @@ fun TextComposer(
                         composerMode = composerMode,
                         onResetComposerMode = onResetComposerMode,
                         isTextEmpty = state.richTextEditorState.messageHtml.isEmpty(),
-                        trailingAction = attachmentButton,
+                        trailingContent = attachmentButton,
                     ) {
                         RichTextEditor(
                             state = state.richTextEditorState,
@@ -253,7 +266,7 @@ fun TextComposer(
                     composerMode = composerMode,
                     onResetComposerMode = onResetComposerMode,
                     isTextEmpty = state.state.text.value().isEmpty(),
-                    trailingAction = attachmentButton,
+                    trailingContent = markdownTrailingContent,
                 ) {
                     MarkdownTextInput(
                         roomId = roomId,
@@ -525,7 +538,9 @@ private fun StandardLayout(
                 is MessageComposerMode.EditCaption -> {
                     Spacer(modifier = Modifier.width(19.dp))
                 }
-                else -> {
+                MessageComposerMode.Normal,
+                is MessageComposerMode.Edit,
+                is MessageComposerMode.Reply -> {
                     // To avoid loosing keyboard focus, the IconButton has to be defined here and has to be always enabled.
                     // MatriX: the same room as the send button on the right (6 dp each side of a 48 dp button), so the text
                     // box is in the middle of the screen
@@ -704,8 +719,8 @@ private fun TextInputBox(
     onResetComposerMode: () -> Unit,
     isTextEmpty: Boolean,
     modifier: Modifier = Modifier,
-    // MatriX: an action at the end of the text box, as the attachment button in WhatsApp
-    trailingAction: (@Composable () -> Unit)? = null,
+    // MatriX: actions at the end of the text box, as the attachment button in WhatsApp
+    trailingContent: (@Composable () -> Unit)? = null,
     textInput: @Composable () -> Unit,
 ) {
     // MatriX: the colour of the messages of the other person and the corners of the messages, without a border
@@ -734,7 +749,7 @@ private fun TextInputBox(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(top = 1.dp, bottom = 4.dp, start = 12.dp, end = if (trailingAction != null) 0.dp else 12.dp)
+                    .padding(top = 1.dp, bottom = 4.dp, start = 12.dp, end = if (trailingContent != null) 0.dp else 12.dp)
                     .then(Modifier.testTag(TestTags.textEditor)),
                 contentAlignment = Alignment.CenterStart,
             ) {
@@ -757,7 +772,31 @@ private fun TextInputBox(
                     }
                 }
             }
-            trailingAction?.invoke()
+            trailingContent?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun AddEmojiButton(onClick: () -> Unit) {
+    // The box is sized exactly to one line of the text input (34 dp plus the 4 dp bottom padding), so the
+    // button neither expands the composer nor drifts off the centre line of the text. The 40 dp button
+    // overflows the box by equal margins top and bottom while retaining its full touch target.
+    Box(
+        modifier = Modifier
+            .padding(end = 2.dp, bottom = 4.dp)
+            .size(width = 40.dp, height = 34.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        IconButton(
+            modifier = Modifier.requiredSize(40.dp),
+            onClick = onClick,
+        ) {
+            Icon(
+                imageVector = CompoundIcons.Reaction(),
+                contentDescription = stringResource(R.string.rich_text_editor_a11y_add_emoji),
+                tint = ElementTheme.colors.iconSecondary,
+            )
         }
     }
 }
@@ -800,6 +839,21 @@ internal fun TextComposerSimplePreview() = ElementPreview {
             state = textEditorState,
             voiceMessageState = VoiceMessageState.Idle,
             composerMode = MessageComposerMode.Normal,
+        )
+    }
+}
+
+@PreviewsDayNight
+@Composable
+internal fun TextComposerWithEmojiButtonPreview() = ElementPreview {
+    PreviewColumn(
+        items = aTextEditorStateMarkdownList()
+    ) { textEditorState ->
+        ATextComposer(
+            state = textEditorState,
+            voiceMessageState = VoiceMessageState.Idle,
+            composerMode = MessageComposerMode.Normal,
+            onAddEmoji = {},
         )
     }
 }
@@ -1128,10 +1182,12 @@ private fun ATextComposer(
     voiceMessageState: VoiceMessageState,
     composerMode: MessageComposerMode,
     showTextFormatting: Boolean = false,
+    onAddEmoji: (() -> Unit)? = null,
 ) {
     TextComposer(
         state = state,
         showTextFormatting = showTextFormatting,
+        onAddEmoji = onAddEmoji,
         voiceMessageState = voiceMessageState,
         composerMode = composerMode,
         onRequestFocus = {},

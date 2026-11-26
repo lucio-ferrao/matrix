@@ -116,10 +116,9 @@ class DefaultNotifiableEventResolver(
         // TODO this notificationData is not always valid at the moment, sometimes the Rust SDK can't fetch the matching event
         val notificationsResult = client.notificationService.getNotifications(ids)
 
-        if (notificationsResult.isFailure) {
-            val exception = notificationsResult.exceptionOrNull()
+        val notifications = notificationsResult.getOrElse { exception ->
             Timber.tag(loggerTag.value).e(exception, "Failed to get notifications for $ids")
-            return Result.failure(exception ?: NotificationResolverException.UnknownError("Unknown error while fetching notifications"))
+            return Result.failure(exception)
         }
 
         val otherSessionUserIds = sessionStore.getAllSessions()
@@ -143,8 +142,7 @@ class DefaultNotifiableEventResolver(
             }
         }.getOrNull().orEmpty()
 
-        // The null check is done above
-        val notificationDataMap = notificationsResult.getOrNull()!!.mapValues { (_, notificationData) ->
+        val notificationDataMap = notifications.mapValues { (_, notificationData) ->
             notificationData.flatMap { data ->
                 // the sender with the name given to them; in a room of two, the room too
                 val sender = data.content.senderIdOrNull()
@@ -177,7 +175,22 @@ class DefaultNotifiableEventResolver(
         is NotificationContent.MessageLike.CallInvite -> senderId
         is NotificationContent.MessageLike.RtcNotification -> senderId
         is NotificationContent.Invite -> senderId
-        else -> null
+        NotificationContent.MessageLike.CallAnswer,
+        NotificationContent.MessageLike.CallHangup,
+        NotificationContent.MessageLike.CallCandidates,
+        NotificationContent.MessageLike.KeyVerificationReady,
+        NotificationContent.MessageLike.KeyVerificationStart,
+        NotificationContent.MessageLike.KeyVerificationCancel,
+        NotificationContent.MessageLike.KeyVerificationAccept,
+        NotificationContent.MessageLike.KeyVerificationKey,
+        NotificationContent.MessageLike.KeyVerificationMac,
+        NotificationContent.MessageLike.KeyVerificationDone,
+        is NotificationContent.MessageLike.ReactionContent,
+        NotificationContent.MessageLike.RoomEncrypted,
+        is NotificationContent.MessageLike.RoomRedaction,
+        NotificationContent.MessageLike.Sticker,
+        NotificationContent.MessageLike.Beacon,
+        is NotificationContent.StateEvent -> null
     }
 
     private suspend fun NotificationData.asNotifiableEvent(

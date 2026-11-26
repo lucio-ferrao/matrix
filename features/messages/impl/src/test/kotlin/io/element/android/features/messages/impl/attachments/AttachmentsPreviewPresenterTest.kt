@@ -988,11 +988,11 @@ class AttachmentsPreviewPresenterTest : RobolectricTest() {
             attachments = attachments.toImmutableList(),
             onDoneListener = onDoneListener,
             room = room,
-            mediaSenderFactory = MediaSenderFactory { timelineMode ->
+            mediaSenderFactory = MediaSenderFactory { mode ->
                 DefaultMediaSender(
                     preProcessor = mediaPreProcessor,
                     room = room,
-                    timelineMode = timelineMode,
+                    timelineMode = mode,
                     mediaOptimizationConfigProvider = {
                         MediaOptimizationConfig(compressImages = true, videoCompressionPreset = VideoCompressionPreset.STANDARD)
                     }

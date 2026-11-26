@@ -48,9 +48,13 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.core.mimetype.MimeTypes
+import io.element.android.libraries.core.mimetype.MimeTypes.Any as AnyMimeTypes
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
+import io.element.android.libraries.emoji.api.picker.EmojiPickerPresenter
+import io.element.android.libraries.emoji.api.recentemojis.AddRecentEmoji
+import io.element.android.libraries.emoji.api.recentemojis.GetRecentEmojis
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.matrix.api.core.EventId
@@ -126,7 +130,6 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
-import io.element.android.libraries.core.mimetype.MimeTypes.Any as AnyMimeTypes
 
 @Suppress("LargeClass")
 @AssistedInject
@@ -163,6 +166,9 @@ class MessageComposerPresenter(
     private val dispatchers: CoroutineDispatchers,
     private val linkPreviews: LinkPreview,
     private val stickerStore: StickerStore,
+    emojiPickerPresenterFactory: EmojiPickerPresenter.Factory,
+    getRecentEmojis: GetRecentEmojis,
+    private val addRecentEmoji: AddRecentEmoji,
 ) : Presenter<MessageComposerState> {
     @AssistedFactory
     interface Factory {
@@ -177,6 +183,7 @@ class MessageComposerPresenter(
     private val mediaSender = mediaSenderFactory.create(timelineMode = timelineController.mainTimelineMode())
 
     private val cameraPermissionPresenter = permissionsPresenterFactory.create(Manifest.permission.CAMERA)
+    private val emojiPickerPresenter = emojiPickerPresenterFactory.create(getRecentEmojis)
     private var pendingEvent: MessageComposerEvent? = null
     private val suggestionSearchTrigger = MutableStateFlow<Suggestion?>(null)
 
@@ -226,6 +233,14 @@ class MessageComposerPresenter(
             mutableStateOf(false)
         }
         var showAttachmentSourcePicker: Boolean by remember { mutableStateOf(false) }
+        var showEmojiPicker: Boolean by remember { mutableStateOf(false) }
+        // The picker presenter is composed only while the picker is visible, so recent emojis reload each time it opens.
+        val emojiPickerState = if (showEmojiPicker) {
+            val pickerState = emojiPickerPresenter.present()
+            if (pickerState.isReady) ComposerEmojiPickerState.Shown(pickerState) else ComposerEmojiPickerState.Loading
+        } else {
+            ComposerEmojiPickerState.Hidden
+        }
 
         val sendTypingNotifications by remember {
             sessionPreferencesStore.isSendTypingNotificationsEnabled()
@@ -233,6 +248,8 @@ class MessageComposerPresenter(
 
         LaunchedEffect(cameraPermissionState.permissionGranted) {
             if (cameraPermissionState.permissionGranted) {
+                // pendingEvent can only be one of the camera events, no need to list all the other MessageComposerEvents
+                @Suppress("ElseCaseInsteadOfExhaustiveWhen")
                 when (pendingEvent) {
                     is MessageComposerEvent.PickAttachmentSource.PhotoFromCamera -> cameraPhotoPicker.launch()
                     else -> Unit
@@ -372,6 +389,15 @@ class MessageComposerPresenter(
                     showAttachmentSourcePicker = true
                 }
                 MessageComposerEvent.DismissAttachmentMenu -> showAttachmentSourcePicker = false
+                MessageComposerEvent.OpenEmojiPicker -> showEmojiPicker = true
+                MessageComposerEvent.DismissEmojiPicker -> showEmojiPicker = false
+                MessageComposerEvent.DeleteBackward -> markdownTextEditorState.deleteBackward()
+                is MessageComposerEvent.InsertEmoji -> {
+                    markdownTextEditorState.insertText(event.emoji)
+                    sessionCoroutineScope.launch(dispatchers.io) {
+                        addRecentEmoji(event.emoji).onFailure { Timber.e(it, "Failed to save recent emoji") }
+                    }
+                }
                 MessageComposerEvent.PickAttachmentSource.FromGallery -> localCoroutineScope.launch {
                     showAttachmentSourcePicker = false
                     if (isSendGalleryMessagesEnabled) {
@@ -407,6 +433,8 @@ class MessageComposerPresenter(
                 }
                 is MessageComposerEvent.ToggleTextFormatting -> {
                     showAttachmentSourcePicker = false
+                    // The emoji picker is available only alongside the markdown editor.
+                    showEmojiPicker = false
                     localCoroutineScope.toggleTextFormatting(event.enabled, markdownTextEditorState, richTextEditorState)
                 }
                 is MessageComposerEvent.Error -> {
@@ -486,6 +514,7 @@ class MessageComposerPresenter(
             mode = messageComposerContext.composerMode,
             isInThreadTimeline = isInThread,
             showAttachmentSourcePicker = showAttachmentSourcePicker,
+            emojiPickerState = emojiPickerState,
             showTextFormatting = showTextFormatting,
             canShareLocation = canShareLocation,
             suggestions = suggestions.toImmutableList(),
@@ -966,7 +995,9 @@ class MessageComposerPresenter(
                 }
                 setText(newComposerMode.content, markdownTextEditorState, richTextEditorState, requestFocus = true)
             }
-            else -> {
+            MessageComposerMode.Normal,
+            MessageComposerMode.Attachment,
+            is MessageComposerMode.Reply -> {
                 if (currentComposerMode is MessageComposerMode.Reply) {
                     val mediaSources = currentComposerMode.replyToDetails.content()?.mediaSources() ?: return@launch
                     val contentValidationState = contentValidationCache[currentComposerMode.replyToDetails.eventId()]

@@ -44,7 +44,7 @@ class RoomListDataSourceTest {
         }
         val dateTimeObserver = FakeDateTimeObserver()
         var dateFormatterResult = "Today"
-        val dateFormatter = FakeDateFormatter({ _, _, _ -> dateFormatterResult })
+        val dateFormatter = FakeDateFormatter { _, _, _ -> dateFormatterResult }
         val roomListDataSource = createRoomListDataSource(
             roomListService = roomListService,
             roomListRoomSummaryFactory = aRoomListRoomSummaryFactory(
@@ -80,7 +80,7 @@ class RoomListDataSourceTest {
         }
         val dateTimeObserver = FakeDateTimeObserver()
         var dateFormatterResult = "Today"
-        val dateFormatter = FakeDateFormatter({ _, _, _ -> dateFormatterResult })
+        val dateFormatter = FakeDateFormatter { _, _, _ -> dateFormatterResult }
         val roomListDataSource = createRoomListDataSource(
             roomListService = roomListService,
             roomListRoomSummaryFactory = aRoomListRoomSummaryFactory(
@@ -210,7 +210,7 @@ class RoomListDataSourceTest {
         }
         val dateTimeObserver = FakeDateTimeObserver()
         var dateFormatterResult = "Today"
-        val dateFormatter = FakeDateFormatter({ _, _, _ -> dateFormatterResult })
+        val dateFormatter = FakeDateFormatter { _, _, _ -> dateFormatterResult }
         val roomListDataSource = createRoomListDataSource(
             roomListService = roomListService,
             roomListRoomSummaryFactory = aRoomListRoomSummaryFactory(

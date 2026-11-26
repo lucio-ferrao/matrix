@@ -28,16 +28,20 @@ import io.element.android.features.messages.impl.crypto.sendfailure.VerifiedUser
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.TimelineItemThreadInfo
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemAttachmentsContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEncryptedContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContentWithAttachment
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemGalleryContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemImageContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemLegacyCallInviteContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemLocationContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemPollContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemRedactedContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemRtcNotificationContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStateContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStickerContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemTextBasedContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemUnknownContent
 import io.element.android.features.messages.impl.timeline.model.event.canBeCopied
 import io.element.android.features.messages.impl.timeline.model.event.canBeForwarded
 import io.element.android.features.messages.impl.timeline.model.event.canReact
@@ -183,7 +187,7 @@ class DefaultActionListPresenter(
         isThreadsEnabled: Boolean,
     ): List<TimelineItemAction> {
         val canRedact = timelineItem.isMine && usersEventPermissions.canRedactOwn || !timelineItem.isMine && usersEventPermissions.canRedactOther
-        return buildSet {
+        val actions = buildSet {
             if (timelineItem.canBeRepliedTo && usersEventPermissions.canSendMessage) {
                 if (isThreadsEnabled && timelineMode !is Timeline.Mode.Thread && timelineItem.isRemote) {
                     // If threads are enabled, we can reply in thread if the item is remote
@@ -254,7 +258,7 @@ class DefaultActionListPresenter(
         }
             .postFilter(timelineItem.content)
             .sortedWith(comparator)
-            .let(postProcessor::process)
+        return postProcessor.process(actions)
     }
 }
 
@@ -270,7 +274,14 @@ private fun Iterable<TimelineItemAction>.postFilter(content: TimelineItemEventCo
             is TimelineItemRedactedContent -> {
                 action == TimelineItemAction.ViewSource || action == TimelineItemAction.Unpin
             }
-            else -> true
+            is TimelineItemTextBasedContent,
+            is TimelineItemEventContentWithAttachment,
+            is TimelineItemAttachmentsContent,
+            is TimelineItemGalleryContent,
+            is TimelineItemEncryptedContent,
+            is TimelineItemLocationContent,
+            is TimelineItemPollContent,
+            TimelineItemUnknownContent -> true
         }
     }
 }

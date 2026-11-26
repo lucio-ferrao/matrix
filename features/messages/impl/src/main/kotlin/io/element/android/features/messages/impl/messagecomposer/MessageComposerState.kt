@@ -11,6 +11,7 @@ package io.element.android.features.messages.impl.messagecomposer
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import io.element.android.libraries.architecture.AsyncAction
+import io.element.android.libraries.emoji.api.picker.EmojiPickerState
 import io.element.android.libraries.textcomposer.mentions.ResolvedSuggestion
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.TextEditorState
@@ -25,6 +26,7 @@ data class MessageComposerState(
     val mode: MessageComposerMode,
     val isInThreadTimeline: Boolean,
     val showAttachmentSourcePicker: Boolean,
+    val emojiPickerState: ComposerEmojiPickerState,
     val showTextFormatting: Boolean,
     val canShareLocation: Boolean,
     val suggestions: ImmutableList<ResolvedSuggestion>,
@@ -49,3 +51,9 @@ data class ComposerLinkPreview(
     val name: String?,
     val artist: String?,
 )
+
+sealed interface ComposerEmojiPickerState {
+    data object Hidden : ComposerEmojiPickerState
+    data object Loading : ComposerEmojiPickerState
+    data class Shown(val state: EmojiPickerState) : ComposerEmojiPickerState
+}

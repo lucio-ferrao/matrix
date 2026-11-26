@@ -24,6 +24,7 @@ import io.element.android.features.messages.impl.link.aLinkState
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerEvent
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerState
 import io.element.android.features.messages.impl.messagecomposer.aMessageComposerState
+import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerState
 import io.element.android.features.messages.impl.pinned.banner.aLoadedPinnedMessagesBannerState
 import io.element.android.features.messages.impl.stickers.FakeStickerStore
 import io.element.android.features.messages.impl.threads.list.aThreadListItem
@@ -173,6 +174,28 @@ class MessagesPresenterTest {
     }
 
     @Test
+    fun `present - selection mode hides the live location and pinned messages banners`() = runTest {
+        val liveLocationShareManager = FakeActiveLiveLocationShareManager(
+            startShareLambda = { _, _ -> Result.success(Unit) },
+        )
+        liveLocationShareManager.startShare(A_ROOM_ID, 60.seconds)
+        val presenter = createMessagesPresenter(
+            liveLocationShareManager = liveLocationShareManager,
+            timelineState = aTimelineState(
+                selectionState = SelectionState.Active(SelectionAction.Forward, persistentSetOf(AN_EVENT_ID)),
+            ),
+        )
+
+        presenter.testWithLifecycleOwner {
+            val state = consumeItemsUntilTimeout().last()
+            assertThat(state.showLiveLocationShareBanner).isFalse()
+            // The banner presenter still reports pinned messages: only the derived visibility accounts for selection mode.
+            assertThat(state.pinnedMessagesBannerState).isInstanceOf(PinnedMessagesBannerState.Visible::class.java)
+            assertThat(state.showPinnedMessagesBanner).isFalse()
+        }
+    }
+
+    @Test
     fun `present - stop live location share delegates to manager for current room`() = runTest {
         val stopShareLambda = lambdaRecorder<RoomId, Result<Unit>> { Result.success(Unit) }
         val liveLocationShareManager = FakeActiveLiveLocationShareManager(
@@ -295,11 +318,10 @@ class MessagesPresenterTest {
     }
 
     @Test
-    fun `present - handle action forward enters selection mode when multi select is enabled`() = runTest {
+    fun `present - handle action forward enters selection mode`() = runTest {
         val timelineEventSink = lambdaRecorder<TimelineEvent, Unit> { }
         val presenter = createMessagesPresenter(
             timelineEventSink = timelineEventSink,
-            featureFlagService = FakeFeatureFlagService(initialState = mapOf(FeatureFlags.MessageMultiSelect.key to true)),
         )
         presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
@@ -308,24 +330,6 @@ class MessagesPresenterTest {
             timelineEventSink.assertions().isCalledOnce()
                 .with(value(TimelineEvent.EnterSelectionMode(SelectionAction.Forward, AN_EVENT_ID)))
             cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `present - handle action forward navigates directly when multi select is disabled`() = runTest {
-        val onForwardEventClickLambda = lambdaRecorder<List<EventId>, Unit> { _ -> }
-        val navigator = FakeMessagesNavigator(
-            onForwardEventClickLambda = onForwardEventClickLambda,
-        )
-        val presenter = createMessagesPresenter(
-            navigator = navigator,
-            featureFlagService = FakeFeatureFlagService(initialState = mapOf(FeatureFlags.MessageMultiSelect.key to false)),
-        )
-        presenter.testWithLifecycleOwner {
-            val initialState = awaitItem()
-            initialState.eventSink(MessagesEvent.HandleAction(TimelineItemAction.Forward, aMessageEvent()))
-            assertThat(awaitItem().actionListState.target).isEqualTo(ActionListState.Target.None)
-            onForwardEventClickLambda.assertions().isCalledOnce().with(value(listOf(AN_EVENT_ID)))
         }
     }
 
@@ -1497,6 +1501,8 @@ class MessagesPresenterTest {
         }
     }
 
+    // Only the event types used by the test are expected, any other type is an error
+    @Suppress("ElseCaseInsteadOfExhaustiveWhen")
     private fun roomPermissions(
         canStartCall: Boolean = true,
         canRedactOther: Boolean = true,

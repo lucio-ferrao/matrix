@@ -240,8 +240,8 @@ class RoomDetailsPresenter(
 
     @Composable
     private fun roomMemberDetailsPresenter(userId: UserId?) = remember(userId) {
-        userId?.let { userId ->
-            roomMembersDetailsPresenterFactory.create(userId)
+        userId?.let { nonNullUserId ->
+            roomMembersDetailsPresenterFactory.create(nonNullUserId)
         }
     }
 

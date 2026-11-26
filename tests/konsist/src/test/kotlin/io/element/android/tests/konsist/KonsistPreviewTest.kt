@@ -91,6 +91,8 @@ class KonsistPreviewTest {
         "BackgroundVerticalGradientPreview",
         "ColorAliasesPreview",
         "EmojiItemWithPopupPreview",
+        "EmojiPickerViewWithBackspacePreview",
+        "FocusedEventPreview",
         "GradientFloatingActionButtonCircleShapePreview",
         "HeaderFooterPageScrollablePreview",
         "HomeTopBarMultiAccountPreview",
@@ -152,6 +154,7 @@ class KonsistPreviewTest {
         "TextComposerSimplePreview",
         "TextComposerVoiceNotEncryptedPreview",
         "TextComposerVoicePreview",
+        "TextComposerWithEmojiButtonPreview",
         "TextFieldDialogWithErrorPreview",
         "TimelineItemAttachmentsViewScanningContentFailedPreview",
         "TimelineItemAudioViewScanningContentPreview",
@@ -203,10 +206,8 @@ class KonsistPreviewTest {
             .functions()
             .withAllAnnotationsOf(PreviewsDayNight::class)
             .withName(previewNameExceptions)
-            .let {
-                it.forEach { function ->
-                    names.remove(function.name)
-                }
+            .forEach { function ->
+                names.remove(function.name)
             }
         assertThat(names).isEmpty()
     }

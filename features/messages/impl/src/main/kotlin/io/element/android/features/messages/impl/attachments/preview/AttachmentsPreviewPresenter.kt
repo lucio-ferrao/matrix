@@ -52,7 +52,6 @@ import io.element.android.libraries.mediaupload.api.allFiles
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import io.element.android.libraries.textcomposer.model.TextEditorState
 import io.element.android.libraries.textcomposer.model.rememberMarkdownTextEditorState
-import java.io.File
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
@@ -63,6 +62,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.File
 
 @AssistedInject
 class AttachmentsPreviewPresenter(
@@ -333,7 +333,7 @@ class AttachmentsPreviewPresenter(
                         resetPreparedMedia(sendActionState)
                         imageEditorState = AttachmentImageEditorState(
                             localMedia = currentLocalMedia,
-                            edits = attachmentsAndEdits.get(currentIndex).edits,
+                            edits = attachmentsAndEdits[currentIndex].edits,
                             previewDebug = false,
                         )
                     }
