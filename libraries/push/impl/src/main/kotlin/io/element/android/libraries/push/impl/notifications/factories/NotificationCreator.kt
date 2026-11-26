@@ -458,12 +458,9 @@ class DefaultNotificationCreator(
                 null
             } else {
                 val senderName = event.senderDisambiguatedDisplayName.orEmpty()
-                // If the notification is for a mention or reply, we create a fake `Person` with a custom name and key
-                val displayName = if (event.hasMentionOrReply) {
-                    stringProvider.getString(R.string.notification_sender_mention_reply, senderName)
-                } else {
-                    senderName
-                }
+                // If the notification is for a mention or reply, we create a fake `Person` with its own key.
+                // MatriX: with just the name, without "mentioned or replied", which left little room for the message
+                val displayName = senderName
                 val key = if (event.hasMentionOrReply) {
                     "mention-or-reply:${event.eventId.value}"
                 } else {

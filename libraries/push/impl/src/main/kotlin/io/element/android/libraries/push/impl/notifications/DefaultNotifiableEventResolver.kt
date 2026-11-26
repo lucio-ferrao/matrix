@@ -436,7 +436,8 @@ class DefaultNotifiableEventResolver(
             }
             is StickerMessageType -> messageType.bestDescription
             is NoticeMessageType -> messageType.body
-            is TextMessageType -> messageType.toPlainText(permalinkParser = permalinkParser)
+            // MatriX: a plain reply without the quote of the message it answers in front of it
+            is TextMessageType -> withoutReplyFallback(messageType.toPlainText(permalinkParser = permalinkParser))
             is VideoMessageType -> messageType.bestDescription
             is LocationMessageType -> messageType.body
             is GalleryMessageType -> messageType.body
@@ -570,3 +571,15 @@ internal fun buildNotifiableMessageEvent(
     type = type,
     hasMentionOrReply = hasMentionOrReply,
 )
+
+/**
+ * MatriX: [body] without the quote of a reply fallback in plain text, the lines starting with "> " in front of the reply
+ * and the empty line after them (`> <@person:server> what they said`); [body] as it is when it has none.
+ */
+internal fun withoutReplyFallback(body: String): String {
+    if (!body.startsWith("> <")) return body
+    val lines = body.lines()
+    val quote = lines.takeWhile { it.startsWith(">") }.size
+    val rest = lines.drop(quote).dropWhile { it.isBlank() }
+    return if (rest.isEmpty()) body else rest.joinToString("\n")
+}
